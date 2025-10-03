@@ -3,2414 +3,935 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tistory Twitter</title>
+    <title>인터랙티브 텍스트 어드벤처 게임</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.min.js"></script> 
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    // [1. 새 게시글 팝 애니메이션]을 더 부드럽게 수정 (0.7s -> 1.2s)
-                    keyframes: {
-                        'pulse-once': {
-                            '0%': { opacity: 0, transform: 'translateY(-10px)', backgroundColor: 'transparent' },
-                            '10%': { opacity: 0.8, transform: 'translateY(0)', backgroundColor: 'rgba(59, 130, 246, 0.05)' },
-                            '100%': { opacity: 1, backgroundColor: 'transparent' },
-                        },
-                        'dark-pulse-once': {
-                            '0%': { opacity: 0, transform: 'translateY(-10px)', backgroundColor: 'transparent' },
-                            '10%': { opacity: 0.8, transform: 'translateY(0)', backgroundColor: 'rgba(29, 78, 216, 0.1)' },
-                            '100%': { opacity: 1, backgroundColor: 'transparent' },
-                        }
-                    },
-                    animation: {
-                        'pulse-once': 'pulse-once 1.2s ease-out', // 1.2s로 변경
-                        'dark-pulse-once': 'dark-pulse-once 1.2s ease-out', // 1.2s로 변경
-                    }
-                },
-            }
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0c0d14; /* 어두운 우주 색 */
+            background-image: radial-gradient(circle at top right, rgba(47, 71, 150, 0.3), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(47, 71, 150, 0.3), transparent 40%);
         }
-    </script>
+
+        #root-container {
+            width: 100%;
+            max-width: 90vw; 
+            aspect-ratio: 21 / 9;
+            max-height: 95vh;
+        }
+
+        #dialogue-container-wrapper {
+            position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: center; padding: 2rem; pointer-events: none;
+        }
+        
+        #dialogue-layout-container { pointer-events: auto; }
+
+        .dialogue-box {
+            background-image: linear-gradient(to bottom, rgba(12, 13, 20, 0.95), rgba(12, 13, 20, 0.75));
+            backdrop-filter: blur(8px); 
+            border: none;
+            border-radius: 2rem; 
+            padding-left: 2rem; 
+            padding-right: 2rem;
+        }
+
+        #character-name { color: #a7b5e8; font-weight: 700; text-shadow: 0 0 5px #2f4796; }
+
+        .choice-btn {
+            background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+            border: 1px solid transparent;
+            border-radius: 9999px;
+            color: #e2e8f0;
+            text-align: center;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s;
+        }
+
+        .choice-btn:hover {
+            background-image: linear-gradient(to bottom, rgba(20, 20, 20, 0.9), rgba(20, 20, 20, 0.7));
+            color: white;
+            box-shadow: 0 0 10px #2f4796;
+            border-color: white;
+        }
+        
+        @keyframes pulse-hotspot {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+        .hotspot {
+            position: absolute;
+            background-color: transparent; border: 2px solid white; 
+            border-radius: 50%;
+            transition: background-color 0.2s, border-color 0.2s; 
+            animation: pulse-hotspot 2s infinite;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            filter: drop-shadow(0 1px 5px rgba(0, 0, 0, 0.6));
+        }
+        .hotspot:hover { background-color: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 1); animation: none; }
+
+        .hotspot-label-container {
+            position: absolute;
+            left: 90%;
+            top: 10%;
+            width: 150px;
+            height: 100px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .hotspot:hover .hotspot-label-container {
+            opacity: 1;
+        }
+
+        .hotspot-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .hotspot-line polyline {
+            fill: none;
+            stroke: white;
+            stroke-width: 1.5;
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            transition: stroke-dashoffset 0.4s ease-out;
+        }
+
+        .hotspot:hover .hotspot-line polyline {
+            stroke-dashoffset: 0;
+        }
+        
+        .hotspot-name {
+            position: absolute;
+            left: 55px; 
+            top: -22px; 
+            color: white;
+            background-color: rgba(0,0,0,0.6);
+            padding: 4px 10px;
+            border-radius: 4px;
+            text-shadow: 0 0 5px black;
+            font-size: 1rem; 
+            font-weight: bold;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease 0.2s, transform 0.3s ease 0.2s;
+            white-space: nowrap;
+        }
+
+        .hotspot:hover .hotspot-name {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #admin-panel, .modal-content-bg { background-color: #1a1c2c; }
+        #admin-panel h2, #syntax-modal h3, #lobby-screen h1 { color: #a7b5e8; }
+
+        #lobby-screen-wrapper {
+             background-color: transparent;
+        }
+
+        .story-item {
+            background-color: rgba(0,0,0,0.4);
+            border: 1px solid rgba(167, 181, 232, 0.2);
+            border-radius: 0.75rem;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .story-item:hover {
+            background-color: rgba(47, 71, 150, 0.3);
+            border-color: rgba(167, 181, 232, 0.8);
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(167, 181, 232, 0.3);
+        }
+        .story-item-title { font-size: 1.125rem; font-weight: bold; color: #e2e8f0; }
+        .story-item-meta { font-size: 0.8rem; color: #a7b5e8; }
+        
+        #create-new-story-btn { 
+            background-image: linear-gradient(to right, #2f4796, #4e68b3);
+            border: none;
+        }
+        .modal-button { background-color: #2f4796; }
+        .modal-button-secondary { background-color: #4a5568; }
+
+        .control-btn {
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .control-btn:hover {
+            background-color: rgba(0,0,0,0.7);
+            border-color: white;
+        }
+
+        #admin-panel, #syntax-modal-content, #story-list-container { scrollbar-width: thin; scrollbar-color: #4a5568 #1a1c2c; }
+        .hotspot-preview { 
+            position: absolute; box-sizing: border-box; cursor: move; border: 2px solid transparent; background-color: rgba(47, 71, 150, 0.2);
+            border-radius: 50%; 
+            aspect-ratio: 1 / 1;
+        }
+        .hotspot-preview.selected { border: 2px solid #a7b5e8; background-color: rgba(47, 71, 150, 0.4); }
+        .resize-handle { position: absolute; width: 10px; height: 10px; background-color: #a7b5e8; border: 1px solid #fff; opacity: 0; transition: opacity 0.2s; }
+        .hotspot-preview.selected .resize-handle { opacity: 1; }
+        .resize-handle.br { bottom: -5px; right: -5px; cursor: se-resize; }
+        #scene-script-editor { white-space: pre-wrap; word-wrap: break-word; }
+        #syntax-modal pre { white-space: pre-wrap; word-break: break-all; }
+
+        #location-popup {
+            transition: opacity 0.5s ease-in-out;
+        }
+        #location-popup-content {
+            background-color: #0c0d14;
+            padding: 1.5rem 4rem;
+            border-top: 2px solid #a7b5e8;
+            border-bottom: 2px solid #a7b5e8;
+            box-shadow: 0 0 20px rgba(47, 71, 150, 0.5);
+        }
+
+        #event-popup {
+            transition: opacity 0.5s ease-in-out;
+        }
+        #event-popup-content {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            display: flex;
+            gap: 0.1em;
+        }
+        .event-char {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(25px) scale(0.7);
+            transition: opacity 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 0 0 15px rgba(59, 130, 246, 0.8), 0 0 5px rgba(147, 197, 253, 1);
+            color: #dbeafe;
+        }
+        .event-char.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        
+        #exit-hotspot-btn {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 35;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        #exit-hotspot-btn:hover {
+            background-color: rgba(255, 255, 255, 1);
+            color: black;
+            transform: scale(1.1) rotate(90deg);
+            border-color: transparent;
+        }
+
+        .restart-option-btn {
+            background-color: rgba(26, 28, 44, 0.9);
+            color: #e2e8f0;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(167, 181, 232, 0.2);
+        }
+        .restart-option-btn:hover {
+            background-color: rgba(47, 71, 150, 0.8);
+            color: white;
+            border-color: rgba(167, 181, 232, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen overflow-hidden flex items-center justify-center">
+
+    <div id="root-container" class="relative">
+        <div id="lobby-screen" class="w-full h-full absolute inset-0">
+             <div id="lobby-screen-wrapper" class="w-full h-full flex items-center justify-center rounded-lg">
+                <div id="lobby-content" class="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-8 w-full max-w-4xl h-4/5">
+                    <div id="lobby-decoration" class="hidden md:flex items-center justify-center">
+                         <svg width="100" height="200" viewBox="0 0 100 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 0 V200" stroke="#a7b5e8" stroke-width="2"/>
+                            <circle cx="50" cy="100" r="40" stroke="#a7b5e8" stroke-width="2" fill="none"/>
+                            <circle cx="50" cy="100" r="10" stroke="#a7b5e8" stroke-width="2" fill="#1a1c2c"/>
+                            <g transform="translate(50 100)">
+                                <path d="M0 -30 L-5 -25 L5 -25 Z" fill="#a7b5e8"/>
+                                <path d="M0 30 L-5 25 L5 25 Z" fill="#a7b5e8"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <div id="lobby-main" class="flex flex-col p-4 md:p-0">
+                        <h1 class="text-4xl font-bold mb-6 text-center md:text-left text-white">챕터 선택</h1>
+                        <div id="story-list-container" class="flex-grow overflow-y-auto pr-4">
+                            <div id="story-list" class="space-y-4"></div>
+                        </div>
+                        <button id="create-new-story-btn" class="w-full hover:opacity-80 p-3 mt-6 rounded-md font-bold transition-colors text-lg">새 스토리 만들기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="app" class="w-full h-full absolute inset-0 bg-transparent overflow-hidden hidden">
+            <div id="game-container" class="w-full h-full relative">
+                <div id="game-screen" class="w-full h-full bg-cover bg-center transition-all duration-500"></div>
+                <div id="hotspot-previews-container"></div>
+                
+                <button id="exit-hotspot-btn" title="조사 종료" class="hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+
+                <div id="dialogue-container-wrapper" class="absolute bottom-0 left-0 right-0 p-8 pointer-events-none flex justify-center items-end">
+                    <div id="dialogue-layout-container" class="w-full max-w-2xl mx-auto relative pointer-events-auto">
+                        <div id="choices-box" class="absolute right-0 bottom-full mb-2 flex flex-col gap-2" style="width: 30%;"></div>
+                        <div id="dialogue-content-box" class="dialogue-box py-4 w-full">
+                            <p id="character-name" class="font-bold text-xl mb-2 px-10"></p>
+                            <p id="dialogue-text" class="text-lg px-10"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="loading-spinner" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white"></div>
+                </div>
+            </div>
+        </div>
+    </div>
     
+    <!-- [!!] 변경: 관리자 패널과 토글 버튼 위치 변경 및 fixed 속성 추가 -->
+    <div id="admin-panel" class="fixed top-0 bottom-0 left-0 z-40 w-full md:w-96 bg-gray-800 p-4 overflow-y-auto border-r-2 border-gray-700 transform -translate-x-full transition-transform duration-300 ease-in-out">
+        <h2 class="text-2xl font-bold mb-4">어드벤처 제작 도구</h2>
+        <div class="space-y-4">
+            <div>
+                <label for="story-title" class="block text-sm font-medium">스토리 제목:</label>
+                <input type="text" id="story-title" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mt-1">
+            </div>
+            <div>
+                <label for="story-subtitle" class="block text-sm font-medium">스토리 부제목:</label>
+                <input type="text" id="story-subtitle" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mt-1">
+            </div>
+            <div>
+                <label for="scene-id" class="block text-sm font-medium">현재 장면 ID:</label>
+                <select id="scene-id" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mt-1"></select>
+            </div>
+            <div>
+                <button id="add-scene-btn" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded-md transition-colors">새 장면 추가</button>
+            </div>
+            <div>
+                <label for="bg-image" class="block text-sm font-medium">배경 이미지 URL:</label>
+                <input type="text" id="bg-image" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mt-1" placeholder="https://placehold.co/800x600/...">
+            </div>
+            <div class="bg-gray-900 p-3 rounded-lg">
+                <div class="flex justify-between items-center mb-2">
+                     <h3 class="font-bold text-lg">장면 스크립트</h3>
+                     <button id="syntax-help-btn" class="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded">문법 도움말</button>
+                </div>
+                <textarea id="scene-script-editor" class="w-full bg-gray-700 p-2 rounded h-64 text-sm leading-relaxed" placeholder="이곳에 장면의 스토리를 작성하세요..."></textarea>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <button id="insert-dialogue-btn" class="bg-cyan-600 hover:bg-cyan-700 p-2 rounded-md text-sm">인물</button>
+                    <button id="insert-choice-btn" class="bg-purple-600 hover:bg-purple-700 p-2 rounded-md text-sm">선택지</button>
+                    <button id="insert-hotspot-btn" class="bg-orange-600 hover:bg-orange-700 p-2 rounded-md text-sm">조사</button>
+                    <button id="insert-location-btn" class="bg-teal-600 hover:bg-teal-700 p-2 rounded-md text-sm">장소</button>
+                    <button id="insert-event-btn" class="bg-pink-600 hover:bg-pink-700 p-2 rounded-md text-sm">이벤트</button>
+                    <button id="insert-label-btn" class="bg-indigo-600 hover:bg-indigo-700 p-2 rounded-md text-sm">레이블</button>
+                    <button id="insert-goto-btn" class="bg-yellow-600 hover:bg-yellow-700 p-2 rounded-md text-sm col-span-2">강제 이동</button>
+                </div>
+            </div>
+            <div>
+                <button id="save-story-btn" class="w-full modal-button hover:bg-blue-700 p-2 rounded-md font-bold transition-colors">스토리 저장하기</button>
+            </div>
+            <div>
+                <button id="delete-scene-btn" class="w-full bg-red-600 hover:bg-red-700 p-2 rounded-md transition-colors">현재 장면 삭제</button>
+            </div>
+        </div>
+    </div>
+    
+    <button id="admin-panel-toggle" class="fixed top-1/2 -translate-y-1/2 left-0 z-50 bg-gray-800 p-2 rounded-r-lg transition-transform duration-300 ease-in-out opacity-70 hover:opacity-100 hidden">
+        <svg id="admin-toggle-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+    </button>
+    
+    <div id="location-popup" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center text-white text-3xl font-bold z-50 hidden opacity-0">
+        <div id="location-popup-content"></div>
+    </div>
+    <div id="event-popup" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center text-white text-3xl font-bold z-50 hidden opacity-0">
+        <div id="event-popup-content"></div>
+    </div>
+    
+    <div class="fixed bottom-4 right-4 flex items-center gap-2 z-40">
+        <button id="back-to-lobby-btn" class="control-btn text-white p-3 rounded-full shadow-lg transition-all hover:scale-110 hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        </button>
+        
+        <div id="restart-btn-container" class="relative hidden">
+            <button id="restart-game-btn" class="control-btn text-white p-3 rounded-full shadow-lg transition-all hover:scale-110">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>
+            </button>
+            <div id="restart-options" class="absolute bottom-full mb-2 right-0 p-2 rounded-lg bg-gray-900 bg-opacity-80 backdrop-blur-sm hidden flex-col items-end gap-2 transition-all duration-300">
+                <button id="restart-scene-btn" class="restart-option-btn">이 장면부터</button>
+                <button id="restart-story-btn" class="restart-option-btn">처음부터</button>
+            </div>
+        </div>
+
+        <button id="toggle-admin-btn" class="control-btn text-white p-3 rounded-full shadow-lg transition-all hover:scale-110 hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+    </div>
+    
+    <!-- Modals (unchanged) -->
+    <div id="message-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50"><div class="modal-content-bg rounded-lg p-6 shadow-xl max-w-sm text-center"><p id="message-text" class="mb-4 text-lg"></p><button id="message-ok-btn" class="modal-button hover:opacity-80 px-6 py-2 rounded-md">확인</button></div></div>
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50"><div class="modal-content-bg rounded-lg p-6 shadow-xl max-w-sm text-center"><p id="confirm-text" class="mb-4 text-lg"></p><div class="flex justify-center space-x-4"><button id="confirm-yes-btn" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-md">예</button><button id="confirm-no-btn" class="modal-button-secondary hover:opacity-80 px-6 py-2 rounded-md">아니오</button></div></div></div>
+    <div id="input-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50"><div class="modal-content-bg rounded-lg p-6 shadow-xl w-full max-w-sm"><p id="input-text" class="mb-4 text-lg text-center"></p><input type="text" id="input-field" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mb-4"><div class="flex justify-center space-x-4"><button id="input-ok-btn" class="modal-button hover:opacity-80 px-6 py-2 rounded-md">확인</button><button id="input-cancel-btn" class="modal-button-secondary hover:opacity-80 px-6 py-2 rounded-md">취소</button></div></div></div>
+    <div id="syntax-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div id="syntax-modal-content" class="bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-2xl text-left relative max-h-full overflow-y-auto"><h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">스크립트 문법 도움말</h3><button id="syntax-close-btn" class="absolute top-6 right-6 text-gray-400 hover:text-white text-3xl leading-none">&times;</button><div class="space-y-6 text-gray-300 mt-4"><div><h4 class="font-bold text-lg text-teal-400">장소 / 이벤트</h4><p class="text-sm mt-1">장면 시작 시 장소 이름이나 이벤트 텍스트를 팝업으로 표시합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[장소: 장소 이름]\n[EVENT: 이벤트 발생!]</code></pre></div>
+    <div><h4 class="font-bold text-lg text-yellow-400">강제 이동</h4><p class="text-sm mt-1">해당 라인을 읽는 즉시 다른 장면으로 강제 이동시킵니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[GOTO: 이동할_장면ID]</code></pre></div>
+    <div><h4 class="font-bold text-lg text-indigo-400">레이블</h4><p class="text-sm mt-1">스크립트 내 특정 위치로 점프할 수 있는 책갈피를 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[LABEL: 레이블_이름]\n...\n> 선택지 {GOTO: 장면ID@레이블_이름}</code></pre></div><div><h4 class="font-bold text-lg text-cyan-400">인물 및 대사</h4><p class="text-sm mt-1">화자를 지정하고 대사를 출력합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[인물: 캐릭터 이름]\n대사 내용입니다.</code></pre></div><div><h4 class="font-bold text-lg text-purple-400">선택지</h4><p class="text-sm mt-1">플레이어에게 선택지를 제공합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[선택지]\n> 선택지 1 {GOTO: 장면ID}\n> 선택지 2 {SHOW: 텍스트}</code></pre></div><div><h4 class="font-bold text-lg text-orange-400">조사 지점 (핫스팟)</h4><p class="text-sm mt-1">화면에 클릭 가능한 영역을 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[조사지점]\n@ 이름 {X:10, Y:10, W:20, H:20, GOTO: 장면ID}</code></pre></div></div></div></div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        window.firebase = {
-            initializeApp, getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut,
-            getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, getDoc, setDoc
-        };
-    </script>
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 font-sans">
+        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-<div id="root"></div>
+        const startApp = async () => {
+            // --- CONFIGURATION ---
+            const firebaseConfig = {
+                apiKey: "AIzaSyDHBS2i2uJDILdx0Cu2fASU2F0m2Xjfkus",
+                authDomain: "qwqweqwe-17b83.firebaseapp.com",
+                projectId: "qwqweqwe-17b83",
+                storageBucket: "qwqweqwe-17b83.appspot.com",
+                messagingSenderId: "687682911187",
+                appId: "1:687682911187:web:04417dcdca24d889d30d26"
+            };
 
-<script type="text/babel">
-    const { useState, useEffect, useCallback, useMemo, useRef } = React;
-    
-    // 유틸리티 함수: SHA-256 해시 생성 (비밀번호 보안용)
-    const sha256 = async (str) => {
-        const buffer = new TextEncoder().encode(str);
-        const hash = await crypto.subtle.digest('SHA-256', buffer);
-        const hex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-        return hex;
-    };
-    
-    // Lucide 아이콘 정의
-    const Lucide = window.LucideReact || {};
-    
-    const LogOut = Lucide.LogOut || '🚪'; 
-    const MessageSquare = Lucide.MessageSquare || '💬'; 
-    const Loader = Lucide.Loader || '↻'; 
-    const AlertTriangle = Lucide.AlertTriangle || '⚠️';
-    const ChevronDown = Lucide.ChevronDown || '▼';
-    const ChevronUp = Lucide.ChevronUp || '▲';
-    const Home = Lucide.Home || '🏠';
-    const Heart = Lucide.Heart || '❤️';
-    const Bookmark = Lucide.Bookmark || '☆';
-    const RepeatIcon = Lucide.Repeat2 || '⇆';
-    const Image = Lucide.Image || '🖼️';
-    const X = Lucide.X || '❌';
-    const ArrowLeft = Lucide.ArrowLeft || '←';
-    const Bell = Lucide.Bell || '🔔';
-    // [다크모드 추가]
-    const Sun = Lucide.Sun || '☼';
-    const Moon = Lucide.Moon || '☽';
+            // --- DOM ELEMENTS ---
+            const lobbyScreen = document.getElementById('lobby-screen');
+            const storyList = document.getElementById('story-list');
+            const createNewStoryBtn = document.getElementById('create-new-story-btn');
+            const appContainer = document.getElementById('app');
+            const gameContainer = document.getElementById('game-container');
+            const gameScreen = document.getElementById('game-screen');
+            const hotspotPreviewsContainer = document.getElementById('hotspot-previews-container');
+            const characterName = document.getElementById('character-name');
+            const dialogueText = document.getElementById('dialogue-text');
+            const choicesBox = document.getElementById('choices-box');
+            const dialogueContentBox = document.getElementById('dialogue-content-box'); 
+            const adminPanel = document.getElementById('admin-panel');
+            const storyTitleInput = document.getElementById('story-title');
+            const storySubtitleInput = document.getElementById('story-subtitle');
+            const toggleAdminBtn = document.getElementById('toggle-admin-btn');
+            const adminPanelToggle = document.getElementById('admin-panel-toggle');
+            const adminToggleIcon = document.getElementById('admin-toggle-icon');
+            const backToLobbyBtn = document.getElementById('back-to-lobby-btn');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const locationPopup = document.getElementById('location-popup');
+            const locationPopupContent = document.getElementById('location-popup-content');
+            const eventPopup = document.getElementById('event-popup');
+            const eventPopupContent = document.getElementById('event-popup-content');
+            const sceneIdSelect = document.getElementById('scene-id');
+            const bgImageInput = document.getElementById('bg-image');
+            const addSceneBtn = document.getElementById('add-scene-btn');
+            const deleteSceneBtn = document.getElementById('delete-scene-btn');
+            const saveStoryBtn = document.getElementById('save-story-btn');
+            const sceneScriptEditor = document.getElementById('scene-script-editor');
+            const syntaxHelpBtn = document.getElementById('syntax-help-btn');
+            const syntaxModal = document.getElementById('syntax-modal');
+            const syntaxCloseBtn = document.getElementById('syntax-close-btn');
+            const insertDialogueBtn = document.getElementById('insert-dialogue-btn');
+            const insertChoiceBtn = document.getElementById('insert-choice-btn');
+            const insertHotspotBtn = document.getElementById('insert-hotspot-btn');
+            const insertLocationBtn = document.getElementById('insert-location-btn');
+            const insertLabelBtn = document.getElementById('insert-label-btn');
+            const insertEventBtn = document.getElementById('insert-event-btn');
+            const exitHotspotBtn = document.getElementById('exit-hotspot-btn');
+            const restartBtnContainer = document.getElementById('restart-btn-container');
+            const restartGameBtn = document.getElementById('restart-game-btn');
+            const restartOptions = document.getElementById('restart-options');
+            const restartSceneBtn = document.getElementById('restart-scene-btn');
+            const restartStoryBtn = document.getElementById('restart-story-btn');
+            const insertGotoBtn = document.getElementById('insert-goto-btn');
 
-    const hardcodedFirebaseConfig = {
-  apiKey: "AIzaSyAfVWUn4vPul4KsIy1KiOlPs5x9WnWZVeE",
-  authDomain: "o-nol-play.firebaseapp.com",
-  projectId: "o-nol-play",
-  storageBucket: "o-nol-play.firebasestorage.app",
-  messagingSenderId: "613953579731",
-  appId: "1:613953579731:web:680c1fe7f4df1e297f8226"
-};
+            // --- UTILITIES (Modals) ---
+            const { showMessage, showConfirm, showInput } = (function setupModals() { /* ... (unchanged) ... */ const messageModal = document.getElementById('message-modal'); const messageText = document.getElementById('message-text'); const messageOkBtn = document.getElementById('message-ok-btn'); const confirmModal = document.getElementById('confirm-modal'); const confirmText = document.getElementById('confirm-text'); const confirmYesBtn = document.getElementById('confirm-yes-btn'); const confirmNoBtn = document.getElementById('confirm-no-btn'); const inputModal = document.getElementById('input-modal'); const inputText = document.getElementById('input-text'); const inputField = document.getElementById('input-field'); const inputOkBtn = document.getElementById('input-ok-btn'); const inputCancelBtn = document.getElementById('input-cancel-btn'); messageOkBtn.addEventListener('click', () => messageModal.classList.add('hidden')); return { showMessage: (message) => { messageText.textContent = message; messageModal.classList.remove('hidden'); }, showConfirm: (message) => new Promise(resolve => { confirmText.textContent = message; confirmModal.classList.remove('hidden'); const yesHandler = () => { resolve(true); confirmModal.classList.add('hidden'); confirmYesBtn.removeEventListener('click', yesHandler); confirmNoBtn.removeEventListener('click', noHandler); }; const noHandler = () => { resolve(false); confirmModal.classList.add('hidden'); confirmYesBtn.removeEventListener('click', yesHandler); confirmNoBtn.removeEventListener('click', noHandler); }; confirmYesBtn.addEventListener('click', yesHandler); confirmNoBtn.addEventListener('click', noHandler); }), showInput: (message, defaultValue = '') => new Promise(resolve => { inputText.textContent = message; inputField.value = defaultValue; inputModal.classList.remove('hidden'); inputField.focus(); const okHandler = () => { resolve(inputField.value); inputModal.classList.add('hidden'); inputOkBtn.removeEventListener('click', okHandler); inputCancelBtn.removeEventListener('click', cancelHandler); }; const cancelHandler = () => { resolve(null); inputModal.classList.add('hidden'); inputOkBtn.removeEventListener('click', okHandler); inputCancelBtn.removeEventListener('click', cancelHandler); }; inputOkBtn.addEventListener('click', okHandler); inputCancelBtn.addEventListener('click', cancelHandler); }) }; })();
 
-    
-    const ACTIVE_USER_STORAGE_KEY = 'miniTwitterActiveUser';
-    const LAST_CHECKED_NOTIFICATIONS_KEY = 'miniTwitterLastCheckedNotifications';
-    // [다크모드 추가] 로컬 스토리지 키
-    const DARK_MODE_STORAGE_KEY = 'miniTwitterDarkMode';
+            // --- GAME STATE ---
+            let currentStoryId = null; let storyData = {}; let currentSceneId = 'start'; let currentItemIndex = 0; let isAdminMode = false; let sceneItems = []; let isInteractingWithHotspot = false;  let currentUser = null;
 
-    let firebaseConfig, initialAuthToken, canvasAppId;
-    
-    if (Object.keys(hardcodedFirebaseConfig).length > 0 && hardcodedFirebaseConfig.apiKey !== "YOUR_API_KEY") {
-        firebaseConfig = hardcodedFirebaseConfig;
-        canvasAppId = hardcodedFirebaseConfig.projectId;
-        initialAuthToken = null;
-    } else if (typeof window.__firebase_config !== 'undefined') {
-        firebaseConfig = JSON.parse(window.__firebase_config);
-        canvasAppId = typeof window.__app_id !== 'undefined' ? window.__app_id : firebaseConfig.projectId;
-        initialAuthToken = typeof window.__initial_auth_token !== 'undefined' ? window.__initial_auth_token : null;
-    } else {
-        firebaseConfig = { apiKey: 'MOCK_API_KEY', authDomain: 'mock-project.firebaseapp.com', projectId: 'mock-project' };
-        canvasAppId = 'default-app-id';
-        initialAuthToken = null;
-    }
+            // --- DEFAULT STORY ---
+            const defaultStoryData = { start: { backgroundImage: 'https://placehold.co/800x600/2d3748/e2e8f0?text=새로운+이야기', script: `[장소: 시작의 방]\n[인물: 나레이션]\n새로운 이야기의 시작입니다.` } };
+            
+            // --- SCRIPT PARSER ---
+            function parseScript(scriptText) { 
+                const lines = (scriptText || '').split('\n'); const items = []; let currentCharacter = '나레이션'; let currentItem = null;
+                for (let i=0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const trimmedLine = line.trim();
+                    const locationMatch = trimmedLine.match(/^\[장소:\s*(.*?)\]$/);
+                    const eventMatch = trimmedLine.match(/^\[EVENT:\s*(.*?)\]$/);
+                    const labelMatch = trimmedLine.match(/^\[LABEL:\s*(.*?)\]$/);
+                    const charMatch = trimmedLine.match(/^\[인물:\s*(.*?)\]$/);
+                    const choiceMatch = trimmedLine.match(/^>\s*(.*?)\s*\{(GOTO|SHOW):\s*(.*?)\s*\}$/);
+                    const hotspotMatch = trimmedLine.match(/^@\s*(.*?)\s*\{X:\s*([\d.]+)\s*,\s*Y:\s*([\d.]+)\s*,\s*W:\s*([\d.]+)\s*,\s*H:\s*([\d.]+)\s*,\s*(GOTO|SHOW):\s*(.*?)\s*\}$/);
+                    const gotoMatch = trimmedLine.match(/^\[GOTO:\s*(.*?)\]$/);
 
-    const { initializeApp, getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut,
-            getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, deleteDoc, updateDoc, getDoc, setDoc } = window.firebase || {};
-
-    const getInitialActiveUser = () => localStorage.getItem(ACTIVE_USER_STORAGE_KEY);
-    
-const MOCK_GROUPS = [
-    { id: 'dev', name: '에이 팀', icon: 'A' },
-    { id: 'design', name: '비 팀', icon: 'B' },
-    { id: 'marketing', name: '씨 팀', icon: 'C' },
-    { id: 'finance', name: '디 팀', icon: 'D' },
-    { id: 'financ', name: '이 팀', icon: 'E' },
-];
-
-const MOCK_USERS = [
-    { uid: 'user-001', name: '유저 1', handle: 'user1', color: 'bg-gray-500', profile: '1', group: 'dev' },
-    { uid: 'user-002', name: '유저 2', handle: 'user2', color: 'bg-gray-500', profile: '2', group: 'dev' },
-    { uid: 'user-003', name: '유저 3', handle: 'user3', color: 'bg-gray-500', profile: '3', group: 'dev' },
-    { uid: 'user-004', name: '유저 4', handle: 'user4', color: 'bg-gray-500', profile: '4', group: 'dev' },
-    { uid: 'user-005', name: '유저 5', handle: 'user5', color: 'bg-gray-500', profile: '5', group: 'dev' },
-    { uid: 'user-006', name: '유저 6', handle: 'user6', color: 'bg-gray-500', profile: '6', group: 'dev' },
-    { uid: 'user-007', name: '유저 7', handle: 'user7', color: 'bg-gray-500', profile: '7', group: 'dev' },
-    { uid: 'user-008', name: '유저 8', handle: 'user8', color: 'bg-gray-500', profile: '8', group: 'dev' },
-    { uid: 'user-009', name: '유저 9', handle: 'user9', color: 'bg-gray-500', profile: '9', group: 'dev' },
-    { uid: 'user-010', name: '유저 10', handle: 'user10', color: 'bg-gray-500', profile: '10', group: 'dev' },
-    { uid: 'user-011', name: '유저 11', handle: 'user11', color: 'bg-gray-500', profile: '11', group: 'dev' },
-    { uid: 'user-012', name: '유저 12', handle: 'user12', color: 'bg-gray-500', profile: '12', group: 'dev' },
-    { uid: 'user-013', name: '유저 13', handle: 'user13', color: 'bg-gray-500', profile: '13', group: 'design' },
-    { uid: 'user-014', name: '유저 14', handle: 'user14', color: 'bg-gray-500', profile: '14', group: 'design' },
-    { uid: 'user-015', name: '유저 15', handle: 'user15', color: 'bg-gray-500', profile: '15', group: 'design' },
-    { uid: 'user-016', name: '유저 16', handle: 'user16', color: 'bg-gray-500', profile: '16', group: 'marketing' },
-    { uid: 'user-017', name: '유저 17', handle: 'user17', color: 'bg-gray-500', profile: '17', group: 'marketing' },
-    { uid: 'user-018', name: '유저 18', handle: 'user18', color: 'bg-gray-500', profile: '18', group: 'marketing' },
-    { uid: 'user-019', name: '유저 19', handle: 'user19', color: 'bg-gray-500', profile: '19', group: 'marketing' },
-    { uid: 'user-020', name: '유저 20', handle: 'user20', color: 'bg-gray-500', profile: '20', group: 'marketing' },
-    { uid: 'user-021', name: '유저 21', handle: 'user21', color: 'bg-gray-500', profile: '21', group: 'marketing' },
-    { uid: 'user-022', name: '유저 22', handle: 'user22', color: 'bg-gray-500', profile: '22', group: 'marketing' },
-    { uid: 'user-023', name: '유저 23', handle: 'user23', color: 'bg-gray-500', profile: '23', group: 'finance' },
-    { uid: 'user-024', name: '유저 24', handle: 'user24', color: 'bg-gray-500', profile: '24', group: 'finance' },
-    { uid: 'user-025', name: '유저 25', handle: 'user25', color: 'bg-gray-500', profile: '25', group: 'finance' },
-    { uid: 'user-026', name: '유저 26', handle: 'user26', color: 'bg-gray-500', profile: '26', group: 'finance' },
-    { uid: 'user-027', name: '유저 27', handle: 'user27', color: 'bg-gray-500', profile: '27', group: 'finance' },
-    { uid: 'user-028', name: '유저 28', handle: 'user28', color: 'bg-gray-500', profile: '28', group: 'finance' },
-    { uid: 'user-029', name: '유저 29', handle: 'user29', color: 'bg-gray-500', profile: '29', group: 'finance' },
-    { uid: 'user-030', name: '유저 30', handle: 'user30', color: 'bg-gray-500', profile: '30', group: 'financ' },
-    { uid: 'user-031', name: '유저 31', handle: 'user31', color: 'bg-gray-500', profile: '31', group: 'financ' },
-    { uid: 'user-032', name: '유저 32', handle: 'user32', color: 'bg-gray-500', profile: '32', group: 'financ' },
-];
-    
-    const EXAMPLE_IMAGE_URL = 'https://i.imgur.com/PPzkDE7.png';
-    
-    const VIEW_OPTIONS = [
-        { id: 'timeline', name: '타임라인', icon: Home, emptyMessage: '아직 게시물이 없습니다. 첫 번째 트윗을 작성해 보세요!' },
-        { id: 'notifications', name: '알림', icon: Bell, emptyMessage: '아직 받은 알림이 없습니다.' },
-        { id: 'likes', name: '좋아요', icon: Heart, emptyMessage: '좋아요를 누른 게시물이 없습니다.' },
-        { id: 'bookmarks', name: '북마크', icon: Bookmark, emptyMessage: '북마크한 게시물이 없습니다.' },
-    ];
-
-    const renderContentWithMentions = (content) => {
-        if (!content) return '';
-        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-        const parts = content.split(mentionRegex);
-
-        return parts.map((part, index) => {
-            if (index % 2 === 1) { 
-                return <span key={index} className="text-blue-500 font-semibold">@{part}</span>;
+                    if (locationMatch) { items.push({ type: 'location', name: locationMatch[1] }); currentItem = null; }
+                    else if (eventMatch) { items.push({ type: 'event', text: eventMatch[1] }); currentItem = null; }
+                    else if (gotoMatch) { items.push({ type: 'goto', target: gotoMatch[1].trim() }); currentItem = null; }
+                    else if (labelMatch) { items.push({ type: 'label', name: labelMatch[1] }); currentItem = null; }
+                    else if (charMatch) { currentCharacter = charMatch[1]; currentItem = null; } 
+                    else if (trimmedLine === '[선택지]') { currentItem = { type: 'choice', choices: [] }; items.push(currentItem); }
+                    else if (trimmedLine === '[조사지점]') { currentItem = { type: 'hotspot', hotspots: [] }; items.push(currentItem); }
+                    else if (choiceMatch && currentItem?.type === 'choice') { currentItem.choices.push({ text: choiceMatch[1], type: choiceMatch[2].toLowerCase(), target: choiceMatch[3] }); }
+                    else if (hotspotMatch && currentItem?.type === 'hotspot') { currentItem.hotspots.push({ name: hotspotMatch[1], x: parseFloat(hotspotMatch[2]), y: parseFloat(hotspotMatch[3]), width: parseFloat(hotspotMatch[4]), height: parseFloat(hotspotMatch[5]), type: hotspotMatch[6].toLowerCase(), target: hotspotMatch[7], lineIndex: i }); }
+                    else if (trimmedLine !== '') { items.push({ type: 'dialogue', character: currentCharacter, text: trimmedLine }); currentItem = null; }
+                }
+                return items;
             }
-            return part; 
-        });
-    };
 
-    const ProfilePictureDisplay = ({ profile, sizeClass = 'w-10 h-10', textSizeClass = 'text-lg', isSmall = false }) => {
-        const hasImage = profile.profileImageUrl && profile.profileImageUrl.startsWith('http');
-        
-        const handleImageError = (e, profile) => {
-            e.target.style.display = 'none'; 
-            const parentDiv = e.target.parentElement;
-            const colorClass = profile.color.split('-').slice(1, 3).join('-');
-            const colorMap = {
-                'blue-500': '#3b82f6', 'blue-400': '#60a5fa',
-                'pink-500': '#ec4899', 'pink-400': '#f472b6',
-                'indigo-500': '#6366f1', 'indigo-400': '#818cf8',
-                'green-500': '#10b981', 'green-400': '#34d399',
-                'gray-300': '#d1d5db',
-                'gray-500': '#6b7280',
+            // --- GAME LOGIC ---
+            let typingTimeout;
+            function showLocationPopup(locationName) { return new Promise(resolve => { locationPopupContent.textContent = `장소: ${locationName}`; locationPopup.classList.remove('hidden', 'opacity-0'); setTimeout(() => { locationPopup.classList.add('opacity-0'); setTimeout(() => { locationPopup.classList.add('hidden'); resolve(); }, 500); }, 1500); }); }
+            
+            function showEventPopup(text) {
+                return new Promise(resolve => {
+                    eventPopupContent.innerHTML = '';
+                    const chars = text.split('');
+                    
+                    chars.forEach(char => {
+                        const span = document.createElement('span');
+                        span.className = 'event-char';
+                        span.textContent = char === ' ' ? '\u00A0' : char;
+                        eventPopupContent.appendChild(span);
+                    });
+
+                    eventPopup.classList.remove('hidden', 'opacity-0');
+
+                    const spans = eventPopupContent.querySelectorAll('.event-char');
+                    let totalDelay = 0;
+                    spans.forEach((span, index) => {
+                        const delay = index * 70;
+                        setTimeout(() => {
+                            span.classList.add('visible');
+                        }, delay);
+                        totalDelay = delay;
+                    });
+                    
+                    setTimeout(() => {
+                        eventPopup.classList.add('opacity-0');
+                        setTimeout(() => {
+                            eventPopup.classList.add('hidden');
+                            resolve();
+                        }, 500);
+                    }, totalDelay + 1200);
+                });
+            }
+            
+            function typeWriterEffect(text, element, callback) { clearTimeout(typingTimeout); element.textContent = ''; let i = 0; function type() { if (i < text.length) { element.textContent += text.charAt(i); i++; typingTimeout = setTimeout(type, 30); } else if (callback) { callback(); } } type(); };
+            
+            function renderDialogue(item) {
+                dialogueContentBox.style.display = 'block';
+                characterName.textContent = item.character;
+                typeWriterEffect(item.text, dialogueText);
+
+                if (item.character === '나레이션') {
+                    characterName.style.display = 'none';
+                } else {
+                    characterName.style.display = 'block';
+                }
+                dialogueContentBox.classList.remove('text-center');
+                dialogueContentBox.classList.add('text-left');
             };
             
-            if (isSmall) {
-                 parentDiv.classList.add('bg-transparent');
-                 parentDiv.innerHTML = `<span class="text-white ${textSizeClass}">${profile.profile}</span>`;
-                 return;
-            }
+            function renderHotspots(item) { 
+                (item.hotspots || []).forEach(hotspot => { 
+                    const hpElement = document.createElement('div'); 
+                    hpElement.className = 'hotspot'; 
+                    hpElement.style.left = `${hotspot.x}%`; 
+                    hpElement.style.top = `${hotspot.y}%`; 
+                    hpElement.style.width = `${hotspot.width}%`; 
 
-            parentDiv.style.backgroundColor = colorMap[colorClass] || '#ccc'; 
-            parentDiv.classList.remove('overflow-hidden');
-            parentDiv.innerHTML = `<span class="${textSizeClass}">${profile.profile}</span>`; 
-        };
+                    const labelContainer = document.createElement('div');
+                    labelContainer.className = 'hotspot-label-container';
+                    
+                    const lineSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    lineSvg.setAttribute('class', 'hotspot-line');
+                    lineSvg.setAttribute('viewBox', '0 0 80 50');
+                    const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+                    polyline.setAttribute('points', '0,25 35,25 50,-5');
+                    lineSvg.appendChild(polyline);
 
-        const defaultStyleClass = isSmall ? 'bg-transparent' : profile.color;
-        
-        return (
-            <div 
-                className={`rounded-full flex items-center justify-center flex-shrink-0 ${sizeClass} ${hasImage ? 'overflow-hidden bg-transparent' : defaultStyleClass}`}
-            >
-                {hasImage ? (
-                    <img 
-                        src={profile.profileImageUrl} 
-                        alt={`${profile.name} profile`} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => handleImageError(e, profile)}
-                    />
-                ) : (
-                    <span className={`${textSizeClass} ${isSmall ? 'text-white' : ''}`}>{profile.profile}</span>
-                )}
-            </div>
-        );
-    };
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'hotspot-name';
+                    nameSpan.textContent = hotspot.name;
 
-    // [2. 프로필 비밀번호] - 비밀번호 입력 모달
-    const PasswordModal = ({ user, onConfirm, onCancel }) => {
-        const [password, setPassword] = useState('');
-        const [error, setError] = useState('');
-        
-        const handleLogin = async (e) => {
-            e.preventDefault();
-            setError('');
+                    labelContainer.appendChild(lineSvg);
+                    labelContainer.appendChild(nameSpan);
+                    hpElement.appendChild(labelContainer);
+                    
+                    hpElement.addEventListener('click', (e) => { 
+                        e.stopPropagation(); 
+                        if (hotspot.type === 'goto') { 
+                            if (hotspot.target) renderScene(hotspot.target); 
+                        } else if (hotspot.type === 'show') { 
+                            exitHotspotBtn.classList.add('hidden');
+                            gameContainer.querySelectorAll('.hotspot').forEach(hp => hp.remove()); 
+                            dialogueContentBox.style.display = 'block'; 
+                            characterName.textContent = ''; 
+                            typeWriterEffect(hotspot.target, dialogueText); 
+                            const advancePastHotspotShow = (e) => { 
+                                e.stopPropagation(); 
+                                if (dialogueText.textContent.length < hotspot.target.length) { 
+                                    clearTimeout(typingTimeout); 
+                                    dialogueText.textContent = hotspot.target; return; 
+                                } 
+                                gameContainer.removeEventListener('click', advancePastHotspotShow); 
+                                processNextItem(); 
+                            }; 
+                            gameContainer.addEventListener('click', advancePastHotspotShow, { once: true }); 
+                        } 
+                    }); 
+                    gameContainer.appendChild(hpElement); 
+                });
+                exitHotspotBtn.classList.remove('hidden');
+            };
             
-            if (!password) {
-                return setError('비밀번호를 입력해 주세요.');
-            }
+            function renderChoices(item) {
+                choicesBox.innerHTML = '';
+                (item.choices || []).forEach(choice => { 
+                    const button = document.createElement('button'); 
+                    button.textContent = choice.text; 
+                    button.className = 'choice-btn w-full'; 
+                    button.addEventListener('click', (e) => { 
+                        e.stopPropagation(); 
+                        if (choice.type === 'goto') { renderScene(choice.target); } 
+                        else if (choice.type === 'show') { 
+                            choicesBox.innerHTML = ''; 
+                            dialogueContentBox.style.display = 'block'; 
+                            characterName.textContent = ''; 
+                            typeWriterEffect(choice.target, dialogueText); 
+                            const advancePastChoice = (e) => { 
+                                e.stopPropagation(); 
+                                if (dialogueText.textContent.length < choice.target.length) { 
+                                    clearTimeout(typingTimeout); dialogueText.textContent = choice.target; return; 
+                                } 
+                                gameContainer.removeEventListener('click', advancePastChoice); 
+                                currentItemIndex++; 
+                                processNextItem(); 
+                            }; 
+                            gameContainer.addEventListener('click', advancePastChoice, { once: true }); 
+                        } 
+                    }); 
+                    choicesBox.appendChild(button); 
+                });
+            };
             
-            const hashedInput = await sha256(password);
-            
-            if (hashedInput === user.passwordHash) {
-                onConfirm(user);
-            } else {
-                setError('비밀번호가 일치하지 않습니다.');
-            }
-        };
-
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm p-6 transform transition-all">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 border-b pb-2">
-                        @{user.handle}님으로 로그인
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        이 프로필은 비밀번호로 보호되어 있습니다.
-                    </p>
-
-                    <form onSubmit={handleLogin}>
-                        <div className="flex items-center space-x-3 mb-4">
-                            <ProfilePictureDisplay profile={user} sizeClass="w-10 h-10" textSizeClass="text-lg" />
-                            <span className="font-semibold dark:text-white">{user.name} (@{user.handle})</span>
-                        </div>
-                        
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="비밀번호 입력"
-                            className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        />
-                        
-                        {error && (
-                            <p className="text-red-500 text-sm mt-2">{error}</p>
-                        )}
-
-                        <div className="flex justify-end space-x-3 mt-6">
-                            <button
-                                type="button"
-                                onClick={onCancel}
-                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500"
-                            >
-                                취소
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition disabled:opacity-50"
-                                disabled={!password}
-                            >
-                                로그인
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        );
-    };
-
-    const QuoteTweetModal = ({ post, onQuoteSubmit, onCancel, currentUserProfile, currentUserId }) => {
-        const [content, setContent] = useState('');
-        const [imageUrl, setImageUrl] = useState('');
-        const [showImageInput, setShowImageInput] = useState(false);
-        const textareaRef = useRef(null);
-
-        useEffect(() => {
-            if (textareaRef.current) {
-                textareaRef.current.style.height = 'auto';
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-            }
-        }, [content]);
-
-        const formProfile = currentUserProfile || {};
-        
-        const handleQuotePost = (e) => {
-            e.preventDefault();
-            onQuoteSubmit(content, post.id, imageUrl.trim()); 
-        };
-        
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 transform transition-all">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 border-b pb-2">인용하여 트윗하기</h3>
-
-                    <form onSubmit={handleQuotePost}>
-                        <div className="flex items-start mb-4">
-                            <div className="mr-3 flex-shrink-0">
-                                <ProfilePictureDisplay profile={formProfile} sizeClass="w-10 h-10" textSizeClass="text-lg" />
-                            </div>
-                            <textarea
-                                ref={textareaRef}
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                placeholder="인용할 내용을 입력하세요..."
-                                className="flex-grow p-2 text-base border-b border-gray-200 focus:outline-none focus:border-blue-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 resize-none overflow-hidden"
-                                rows="2"
-                                maxLength="280"
-                            />
-                        </div>
-                        
-                        <div className="flex items-center justify-between mb-4 mt-2">
-                            <button
-                                type="button"
-                                onClick={() => setShowImageInput(prev => !prev)}
-                                className="flex items-center text-blue-500 hover:text-blue-600 transition text-sm font-medium"
-                            >
-                                {typeof Image === 'string' ? <span className="mr-1">{Image}</span> : <Image size={16} className="mr-1" />}
-                                이미지 주소 첨부
-                            </button>
-                            {imageUrl && (
-                                <button
-                                    type="button"
-                                    onClick={() => setImageUrl('')}
-                                    className="flex items-center text-red-500 hover:text-red-600 transition text-xs"
-                                >
-                                    {typeof X === 'string' ? <span className="mr-1">{X}</span> : <X size={12} className="mr-1" />}
-                                    첨부 취소
-                                </button>
-                            )}
-                        </div>
-
-                        {showImageInput && (
-                            <div className="mb-4">
-                                <input
-                                    type="url"
-                                    value={imageUrl}
-                                    onChange={(e) => setImageUrl(e.target.value)}
-                                    placeholder="이미지 주소(URL)를 입력하세요. (예: https://i.imgur.com/example.jpg)"
-                                    className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                />
-                            </div>
-                        )}
-                        {imageUrl && (
-                            <div className="mb-4 max-h-40 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-                                <img src={imageUrl} alt="미리보기" className="w-full object-cover" />
-                            </div>
-                        )}
-
-
-                        <div className="mt-2 p-3 border border-gray-200 dark:border-gray-700 rounded-xl max-h-40 overflow-hidden relative">
-                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-200 truncate">@{post.authorHandle}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap line-clamp-3">{post.content}</p>
-                            <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-gray-800 to-transparent opacity-80 pointer-events-none"></div>
-                        </div>
-
-                        <div className="flex justify-end space-x-3 mt-6">
-                            <button
-                                type="button"
-                                onClick={onCancel}
-                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500"
-                            >
-                                취소
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition disabled:opacity-50"
-                                disabled={!currentUserId || (content.trim() === "" && imageUrl.trim() === "")}
-                            >
-                                인용 트윗
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        );
-    };
-
-    const ReplyModal = ({ post, onReply, onCancel, currentUserProfile, currentUserId }) => {
-        const [replyContent, setReplyContent] = useState(`@${post.authorHandle} `);
-        const [imageUrl, setImageUrl] = useState('');
-        const [showImageInput, setShowImageInput] = useState(false);
-        const textareaRef = useRef(null); 
-        
-        useEffect(() => {
-            if (textareaRef.current) {
-                textareaRef.current.style.height = 'auto'; 
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-                textareaRef.current.focus();
-                const len = textareaRef.current.value.length;
-                textareaRef.current.setSelectionRange(len, len);
-            }
-        }, []);
-        
-        const formProfile = currentUserProfile || { 
-            profile: '👤', 
-            color: 'bg-gray-500', 
-            handle: '사용자',
-            profileImageUrl: '' 
-        };
-        
-        const postProfile = {
-            name: post.authorName,
-            handle: post.authorHandle,
-            profile: post.authorProfile,
-            profileImageUrl: post.authorImageUrl,
-            color: post.authorColor,
-        };
-        
-        const handleReplySubmit = (e) => {
-            e.preventDefault();
-            onReply(replyContent, post.id, null, imageUrl.trim()); 
-            onCancel();
-        };
-
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 p-0 sm:p-4">
-                <div className="bg-white dark:bg-gray-800 rounded-none sm:rounded-xl shadow-2xl w-full max-w-md transform transition-all overflow-y-auto max-h-full sm:max-h-[90vh]">
-                    <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center p-3 z-10">
-                        <button 
-                            onClick={onCancel} 
-                            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                        >
-                            {typeof ArrowLeft === 'string' ? <span className="text-xl text-gray-700 dark:text-gray-300">{ArrowLeft}</span> : <ArrowLeft size={20} className="text-gray-700 dark:text-gray-300" />}
-                        </button>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white ml-4">답글 작성</h3>
-                    </div>
-
-                    <div className="p-4">
-                        <div className="flex items-start mb-4 border-b border-gray-100 dark:border-gray-700 pb-4">
-                            <div className="mr-3 flex-shrink-0">
-                                <ProfilePictureDisplay profile={postProfile} sizeClass="w-8 h-8" textSizeClass="text-sm" />
-                            </div>
-                            <div className="flex-grow text-sm">
-                                <div className="flex items-center space-x-1 mb-1">
-                                    <span className="font-bold dark:text-white">{post.authorName}</span>
-                                    <span className="text-gray-500 dark:text-gray-400">@{post.authorHandle}</span>
-                                </div>
-                                <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{renderContentWithMentions(post.content)}</p>
-                                
-                                {post.imageUrl && (
-                                    <div className="mt-2 max-h-32 overflow-hidden rounded-xl">
-                                        <img src={post.imageUrl} alt="첨부 이미지" className="w-full object-cover" />
-                                    </div>
-                                )}
-
-                                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                                    <span className="text-blue-500">@{post.authorHandle}</span>님에게 답글 중
-                                </p>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleReplySubmit} className="flex flex-col">
-                            <div className="flex items-start">
-                                <div className="mr-3 flex-shrink-0 pt-1">
-                                    <ProfilePictureDisplay profile={formProfile} sizeClass="w-10 h-10" textSizeClass="text-lg" />
-                                </div>
-                                <textarea
-                                    ref={textareaRef}
-                                    value={replyContent}
-                                    onChange={(e) => setReplyContent(e.target.value)}
-                                    placeholder="답글을 입력하세요..."
-                                    className="flex-grow p-2 text-base border-b border-gray-200 focus:outline-none focus:border-blue-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 resize-none overflow-hidden"
-                                    rows="2"
-                                    disabled={!currentUserId}
-                                    maxLength="280"
-                                />
-                            </div>
-                            
-                            <div className="flex flex-col pl-12 pt-2">
-                                <div className="flex items-center justify-between mt-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowImageInput(prev => !prev)}
-                                        className="flex items-center text-blue-500 hover:text-blue-600 transition text-sm font-medium"
-                                    >
-                                        {typeof Image === 'string' ? <span className="mr-1">{Image}</span> : <Image size={16} className="mr-1" />}
-                                        이미지 주소 첨부
-                                    </button>
-                                    <button
-                                      type="submit"
-                                      className="ml-2 px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition disabled:opacity-50 font-semibold"
-                                      disabled={!currentUserId || (replyContent.trim() === "" && imageUrl.trim() === "")}
-                                    >
-                                      답글
-                                    </button>
-                                </div>
-                                
-                                {showImageInput && (
-                                    <div className="mt-2 mb-2">
-                                        <input
-                                            type="url"
-                                            value={imageUrl}
-                                            onChange={(e) => setImageUrl(e.target.value)}
-                                            placeholder="이미지 주소(URL)를 입력하세요."
-                                            className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                        />
-                                    </div>
-                                )}
-                                {imageUrl && (
-                                    <div className="mb-2 max-h-40 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 relative">
-                                        <img 
-                                            src={imageUrl} 
-                                            alt="미리보기" 
-                                            className="w-full object-cover" 
-                                            onError={(e) => {e.target.style.display='none';}}
-                                        />
-                                         <button
-                                            type="button"
-                                            onClick={() => setImageUrl('')}
-                                            className="absolute top-2 right-2 p-1 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition"
-                                        >
-                                            {typeof X === 'string' ? <span className="text-xs">{X}</span> : <X size={14} />}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-
-    const DeleteConfirmationModal = ({ post, onConfirm, onCancel }) => {
-        if (!post) return null;
-        const AlertIcon = AlertTriangle; 
-        return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-700 rounded-xl shadow-2xl w-full max-w-md p-6 transform transition-all">
-              <div className="flex items-center space-x-3 mb-4">
-                {typeof AlertIcon === 'string' ? <span className="text-red-500 text-2xl">{AlertIcon}</span> : <AlertIcon className="text-red-500 flex-shrink-0" size={24} />}
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">게시물 삭제 확인</h3>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
-                정말로 이 게시물을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-              </p>
-              <div className="border-l-4 border-red-300 pl-3 py-2 mb-6 bg-red-50 dark:bg-gray-800 rounded-md">
-                <p className="font-semibold text-gray-800 dark:text-gray-200">@{post.authorHandle}의 게시물:</p>
-                <p className="text-sm italic text-gray-600 dark:text-gray-400 mt-1 max-h-24 overflow-hidden whitespace-pre-wrap">{post.content}</p>
-                {post.imageUrl && (
-                    <div className="mt-2 max-h-20 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-                        <img src={post.imageUrl} alt="첨부 이미지" className="w-full object-cover" />
-                    </div>
-                )}
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={onCancel}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={onConfirm}
-                  className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-lg shadow-red-500/50"
-                >
-                  삭제하기
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-    };
-
-    const ProfileEditorModal = ({ profile, onSave, onCancel, currentPasswordHash }) => {
-        const [name, setName] = useState(profile.name);
-        const [handle, setHandle] = useState(profile.handle);
-        const [profileImageUrl, setProfileImageUrl] = useState(profile.profileImageUrl || ''); 
-        const [newPassword, setNewPassword] = useState('');
-        const [confirmPassword, setConfirmPassword] = useState('');
-        const [oldPassword, setOldPassword] = useState('');
-        const [error, setError] = useState('');
-
-        const isHandleValid = handle.length > 0 && /^[a-zA-Z0-9_]+$/.test(handle);
-        const isNameValid = name.length > 0;
-        
-        const isInfoChanged = name !== profile.name || handle !== profile.handle || profileImageUrl !== (profile.profileImageUrl || '');
-        const isPasswordSet = !!currentPasswordHash;
-        
-        const isPasswordChanged = newPassword.length > 0;
-        const isPasswordValid = isPasswordChanged && newPassword === confirmPassword;
-        
-        // 변경이 없는 경우 저장 버튼 비활성화
-        const isDataUnchanged = !isInfoChanged && !isPasswordChanged;
-        // 비밀번호를 변경하는데 기존 비밀번호가 틀렸거나 새 비밀번호가 유효하지 않은 경우 저장 버튼 비활성화
-        const isPasswordError = isPasswordChanged && (!isPasswordValid || (isPasswordSet && !oldPassword));
-        const isDisabled = !isHandleValid || !isNameValid || isDataUnchanged || isPasswordError;
-
-        const handleSave = async () => {
-            setError('');
-            if (isPasswordChanged) {
-                if (newPassword !== confirmPassword) {
-                    return setError('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+            async function processNextItem() {
+                choicesBox.innerHTML = '';
+                gameContainer.querySelectorAll('.hotspot').forEach(hp => hp.remove());
+                exitHotspotBtn.classList.add('hidden');
+                
+                if (currentItemIndex >= sceneItems.length) {
+                    dialogueContentBox.style.display = 'none';
+                    return;
                 }
-                if (isPasswordSet) {
-                    const hashedOld = await sha256(oldPassword);
-                    if (hashedOld !== currentPasswordHash) {
-                        return setError('기존 비밀번호가 일치하지 않습니다.');
+
+                let item = sceneItems[currentItemIndex];
+
+                while(item && (item.type === 'location' || item.type === 'label' || item.type === 'event' || item.type === 'goto')) {
+                    if (item.type === 'event') {
+                        await showEventPopup(item.text);
+                    }
+                    if (item.type === 'goto') {
+                        await renderScene(item.target);
+                        return;
+                    }
+                    currentItemIndex++;
+                     if (currentItemIndex >= sceneItems.length) {
+                        dialogueContentBox.style.display = 'none';
+                        return;
+                    }
+                    item = sceneItems[currentItemIndex];
+                }
+
+                if (!item) {
+                    dialogueContentBox.style.display = 'none';
+                    return;
+                }
+
+                switch (item.type) {
+                    case 'dialogue':
+                        renderDialogue(item);
+                        break;
+                    case 'choice':
+                        renderChoices(item);
+                        break;
+                    case 'hotspot':
+                        dialogueContentBox.style.display = 'none';
+                        renderHotspots(item);
+                        break;
+                }
+            }
+            async function renderScene(sceneTarget) {
+                exitHotspotBtn.classList.add('hidden');
+
+                const [sceneId, labelName] = sceneTarget.split('@');
+                const scene = storyData[sceneId];
+
+                if (!scene) {
+                    showMessage(`장면 "${sceneId}"를 찾을 수 없습니다.`);
+                    currentSceneId = 'start';
+                    await renderScene('start');
+                    return;
+                }
+                currentSceneId = sceneId;
+                gameScreen.style.backgroundImage = `url(${scene.backgroundImage || ''})`;
+                sceneItems = parseScript(scene.script || '');
+                currentItemIndex = 0;
+
+                if (labelName) {
+                    const labelIndex = sceneItems.findIndex(item => item.type === 'label' && item.name === labelName);
+                    if (labelIndex !== -1) {
+                        currentItemIndex = labelIndex;
+                    }
+                }
+
+                const locationItem = sceneItems.find(item => item.type === 'location');
+                if (locationItem && !labelName) {
+                    await showLocationPopup(locationItem.name);
+                }
+                await processNextItem();
+            }
+            function advanceFlow(e) { if (e && (e.target.closest('.choice-btn') || e.target.closest('.hotspot') || e.target.closest('#admin-panel') || e.target.closest('#admin-panel-toggle') || e.target.closest('#exit-hotspot-btn'))) { return; } const currentItem = sceneItems[currentItemIndex]; if (currentItem && currentItem.type === 'dialogue') { const fullText = currentItem.text || ''; if (dialogueText.textContent.length < fullText.length) { clearTimeout(typingTimeout); dialogueText.textContent = fullText; } else { currentItemIndex++; processNextItem(); } } }
+            
+            // --- LOBBY LOGIC ---
+            function showLobby() { 
+                exitHotspotBtn.classList.add('hidden');
+                lobbyScreen.classList.remove('hidden'); 
+                appContainer.classList.add('hidden'); 
+                backToLobbyBtn.classList.add('hidden'); 
+                restartBtnContainer.classList.add('hidden');
+                toggleAdminBtn.classList.add('hidden'); 
+                adminPanelToggle.classList.add('hidden'); 
+                if(isAdminMode) toggleAdminMode(); 
+            }
+            async function loadAndPlayStory(storyId, storyDoc) { 
+                exitHotspotBtn.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden'); 
+                lobbyScreen.classList.add('hidden'); 
+                appContainer.classList.remove('hidden'); 
+                backToLobbyBtn.classList.remove('hidden'); 
+                restartBtnContainer.classList.remove('hidden');
+                currentStoryId = storyId; 
+                const storyContent = storyDoc.data(); 
+                storyTitleInput.value = storyContent.title; 
+                storySubtitleInput.value = storyContent.subtitle || ''; 
+                try { storyData = JSON.parse(storyContent.data); } catch { storyData = defaultStoryData; } 
+                toggleAdminBtn.classList.remove('hidden'); 
+                await renderScene('start'); 
+                loadingSpinner.classList.add('hidden'); 
+            }
+            async function createNewStory() { const title = await showInput("새 스토리의 제목을 입력하세요.", "새로운 챕터"); if(!title) return; const subtitle = await showInput("스토리의 부제목을 입력하세요.", "이야기의 시작"); if(subtitle === null) return; loadingSpinner.classList.remove('hidden'); try { const newStoryRef = await addDoc(collection(db, "stories"), { title: title, subtitle: subtitle, creatorId: currentUser.uid, createdAt: new Date(), data: JSON.stringify(defaultStoryData) }); const newStoryDoc = await getDoc(newStoryRef); await loadAndPlayStory(newStoryDoc.id, newStoryDoc); } catch(e) { showMessage("스토리 생성에 실패했습니다."); } finally { loadingSpinner.classList.add('hidden'); } }
+            async function deleteStory(storyId) { if (await showConfirm("정말로 이 스토리를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) { loadingSpinner.classList.remove('hidden'); try { await deleteDoc(doc(db, "stories", storyId)); showMessage("스토리가 삭제되었습니다."); } catch(e) { showMessage("스토리 삭제에 실패했습니다."); } finally { loadingSpinner.classList.add('hidden'); } } }
+
+            // --- ADMIN LOGIC ---
+            function toggleAdminPanel() {
+                const isOpen = !adminPanel.classList.contains('-translate-x-full');
+                if (isOpen) {
+                    adminPanel.classList.add('-translate-x-full');
+                    adminPanelToggle.style.transform = 'translateX(0%)';
+                    adminToggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>';
+                } else {
+                    adminPanel.classList.remove('-translate-x-full');
+                    const panelWidth = adminPanel.offsetWidth;
+                    adminPanelToggle.style.transform = `translateX(${panelWidth}px)`;
+                    adminToggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>';
+                }
+            }
+            function toggleAdminMode() { 
+                isAdminMode = !isAdminMode; 
+                if(isAdminMode) { 
+                    adminPanelToggle.classList.remove('hidden');
+                    updateAdminPanel(); 
+                    if (adminPanel.classList.contains('-translate-x-full')) {
+                        toggleAdminPanel();
+                    }
+                } else { 
+                    if (!adminPanel.classList.contains('-translate-x-full')) {
+                        toggleAdminPanel();
+                    }
+                    adminPanelToggle.classList.add('hidden');
+                    hotspotPreviewsContainer.innerHTML = ''; 
+                } 
+            }
+
+            function updateAdminPanel() { if (!isAdminMode) return; sceneIdSelect.innerHTML = Object.keys(storyData).map(id => `<option value="${id}">${id}</option>`).join(''); sceneIdSelect.value = currentSceneId; const scene = storyData[currentSceneId]; if (!scene) return; bgImageInput.value = scene.backgroundImage || ''; sceneScriptEditor.value = scene.script || ''; hotspotPreviewsContainer.innerHTML = ''; parseScript(scene.script || '').forEach(item => { if (item.type === 'hotspot') { (item.hotspots || []).forEach(hotspot => renderHotspotPreview(hotspot)); } }); handleEditorCursorChange(); }
+            function renderHotspotPreview(hotspot) { const preview = document.createElement('div'); preview.className = 'hotspot-preview'; preview.dataset.lineIndex = hotspot.lineIndex; preview.style.left = `${hotspot.x}%`; preview.style.top = `${hotspot.y}%`; preview.style.width = `${hotspot.width}%`; const handle = document.createElement('div'); handle.className = 'resize-handle br'; preview.appendChild(handle); preview.addEventListener('click', (e) => { e.stopPropagation(); const lineIdx = parseInt(e.currentTarget.dataset.lineIndex); if(isNaN(lineIdx)) return; const scriptText = sceneScriptEditor.value; const lines = scriptText.split('\n'); let charIndex = 0; for (let i = 0; i < lines.length; i++) { if (i === lineIdx) { sceneScriptEditor.focus(); sceneScriptEditor.selectionStart = charIndex; sceneScriptEditor.selectionEnd = charIndex + lines[i].length; handleEditorCursorChange(); break; } charIndex += lines[i].length + 1; } }); makeDraggableAndResizable(preview); hotspotPreviewsContainer.appendChild(preview); }
+            function makeDraggableAndResizable(element) { let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0; let containerRect; const dragMouseDown = (e) => { if (e.target.closest('.resize-handle')) return; e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY; isInteractingWithHotspot = true; containerRect = gameContainer.getBoundingClientRect(); document.onmouseup = closeDragElement; document.onmousemove = elementDrag; }; const elementDrag = (e) => { e.preventDefault(); pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY; pos3 = e.clientX; pos4 = e.clientY; let newTop = (element.offsetTop - pos2) / containerRect.height * 100; let newLeft = (element.offsetLeft - pos1) / containerRect.width * 100; const elWidth = parseFloat(element.style.width); newLeft = Math.max(0, Math.min(newLeft, 100 - elWidth)); newTop = Math.max(0, Math.min(newTop, 100 - elWidth * (containerRect.width/containerRect.height) )); element.style.top = `${newTop}%`; element.style.left = `${newLeft}%`; updateScriptFromPreview(element); }; const resizeMouseDown = (e) => { e.preventDefault(); e.stopPropagation(); pos3 = e.clientX; pos4 = e.clientY; isInteractingWithHotspot = true; containerRect = gameContainer.getBoundingClientRect(); document.onmouseup = closeDragElement; document.onmousemove = elementResize; }; const elementResize = (e) => { e.preventDefault(); const dx = e.clientX - pos3; let newWidth = (element.offsetWidth + dx) / containerRect.width * 100; pos3 = e.clientX; const elLeft = parseFloat(element.style.left); newWidth = Math.max(5, Math.min(newWidth, 100 - elLeft)); element.style.width = `${newWidth}%`; updateScriptFromPreview(element); }; const closeDragElement = () => { isInteractingWithHotspot = false; document.onmouseup = null; document.onmousemove = null; }; element.querySelector('.resize-handle.br').onmousedown = resizeMouseDown; element.onmousedown = dragMouseDown; }
+               function updateScriptFromPreview(element) {
+                const lineIndexToUpdate = parseInt(element.dataset.lineIndex);
+                if (isNaN(lineIndexToUpdate)) return;
+
+                const newX = parseFloat(element.style.left).toFixed(2);
+                const newY = parseFloat(element.style.top).toFixed(2);
+                const newW = parseFloat(element.style.width).toFixed(2);
+                const containerRect = gameContainer.getBoundingClientRect();
+                const newH = (newW * (containerRect.width / containerRect.height)).toFixed(2);
+
+                const scriptLines = sceneScriptEditor.value.split('\n');
+                const lineToUpdate = scriptLines[lineIndexToUpdate];
+                
+                if (!lineToUpdate) return;
+                
+                const parseRegex = /^@\s*(.*?)\s*\{X:\s*[\d.]+\s*,\s*Y:\s*[\d.]+\s*,\s*W:\s*[\d.]+\s*,\s*H:\s*[\d.]+\s*,\s*(GOTO|SHOW):\s*(.*?)\s*\}$/;
+                const match = lineToUpdate.trim().match(parseRegex);
+
+                if (match) {
+                    const name = match[1];
+                    const type = match[2];
+                    const target = match[3];
+                    
+                    const newLine = `@ ${name} {X: ${newX}, Y: ${newY}, W: ${newW}, H: ${newH}, ${type.toUpperCase()}: ${target}}`;
+                    
+                    scriptLines[lineIndexToUpdate] = newLine;
+                    const newScript = scriptLines.join('\n');
+                    
+                    if (sceneScriptEditor.value !== newScript) {
+                        const cursorPosStart = sceneScriptEditor.selectionStart;
+                        sceneScriptEditor.value = newScript;
+                        sceneScriptEditor.setSelectionRange(cursorPosStart, cursorPosStart);
+                        
+                        sceneScriptEditor.dispatchEvent(new Event('input', { bubbles:true, cancelable:true }));
                     }
                 }
             }
-
-            try {
-                let passwordHash = currentPasswordHash;
-                if (isPasswordChanged) {
-                    passwordHash = await sha256(newPassword);
-                }
-                
-                onSave({ 
-                    name, 
-                    handle, 
-                    profileImageUrl: profileImageUrl.trim(), 
-                    passwordHash: isPasswordChanged ? passwordHash : (isPasswordSet ? currentPasswordHash : null)
-                });
-            } catch (e) {
-                console.error("Profile Save Error:", e);
-                setError('저장 중 오류가 발생했습니다.');
-            }
-        };
-
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white dark:bg-gray-700 rounded-xl shadow-2xl w-full max-w-md p-6">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 border-b pb-2">프로필 수정</h3>
-
-                    <div className="flex flex-col items-center mb-6">
-                        <div className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-3">
-                            <ProfilePictureDisplay 
-                                profile={{ ...profile, profileImageUrl: profileImageUrl }} 
-                                sizeClass="w-20 h-20"
-                                textSizeClass="text-4xl"
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-4 mb-6">
-                        <div className="border-b pb-2 dark:border-gray-600">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                프로필 이미지 URL
-                                <span className="text-xs text-gray-400 ml-2">(예: {EXAMPLE_IMAGE_URL})</span>
-                            </label>
-                            <input
-                                type="url"
-                                value={profileImageUrl}
-                                onChange={(e) => setProfileImageUrl(e.target.value)}
-                                className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                                placeholder="이미지 주소를 입력하세요 (선택 사항)"
-                            />
-                        </div>
-
-                        <div className="border-b pb-2 dark:border-gray-600">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">이름</label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                                maxLength="15"
-                            />
-                        </div>
-
-                        <div className="border-b pb-2 dark:border-gray-600">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">아이디 (Handle)</label>
-                            <div className="flex">
-                                <span className="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:border-gray-600 dark:text-gray-300">@</span>
-                                <input
-                                    type="text"
-                                    value={handle}
-                                    onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                                    className={`flex-1 p-2 border border-gray-300 rounded-r-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500 ${!isHandleValid && handle.length > 0 ? 'border-red-500' : ''}`}
-                                    maxLength="15"
-                                    placeholder="영문, 숫자, 밑줄만 가능"
-                                />
-                            </div>
-                            {!isHandleValid && handle.length > 0 && <p className="text-xs text-red-500 mt-1">아이디는 영문, 숫자, 밑줄(_)만 가능합니다.</p>}
-                        </div>
-                    </div>
-                    
-                    {/* [2. 프로필 비밀번호] - 비밀번호 설정 섹션 */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600 space-y-3">
-                        <h4 className="font-bold text-gray-800 dark:text-white">{isPasswordSet ? '비밀번호 변경' : '비밀번호 설정 (선택 사항)'}</h4>
-                        
-                        {isPasswordSet && (
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">기존 비밀번호</label>
-                                <input
-                                    type="password"
-                                    value={oldPassword}
-                                    onChange={(e) => setOldPassword(e.target.value)}
-                                    className="mt-1 w-full p-2 text-sm border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    placeholder="기존 비밀번호"
-                                />
-                            </div>
-                        )}
-                        
-                        <div>
-                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{isPasswordSet ? '새 비밀번호' : '비밀번호'}</label>
-                            <input
-                                type="password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                className="mt-1 w-full p-2 text-sm border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                placeholder={isPasswordSet ? "새 비밀번호 (변경 안 하려면 비워두세요)" : "비밀번호"}
-                            />
-                        </div>
-                        
-                        {isPasswordChanged && (
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">새 비밀번호 확인</label>
-                                <input
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="mt-1 w-full p-2 text-sm border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    placeholder="비밀번호 확인"
-                                />
-                                {newPassword !== confirmPassword && <p className="text-xs text-red-500 mt-1">비밀번호가 일치하지 않습니다.</p>}
-                            </div>
-                        )}
-                        {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-                    </div>
-
-                    <div className="flex justify-end space-x-3 mt-6">
-                        <button
-                            onClick={onCancel}
-                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500"
-                        >
-                            취소
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition disabled:opacity-50"
-                            disabled={isDisabled}
-                        >
-                            저장
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const formatTimestamp = (date) => {
-        if (!date || isNaN(date.getTime())) return '방금 전';
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-
-        if (seconds < 60) return `${seconds}초 전`;
-        if (minutes < 60) return `${minutes}분 전`;
-        if (hours < 24) return `${hours}시간 전`;
-        if (days < 7) return `${days}일 전`;
-        return date.toLocaleDateString('ko-KR');
-    };
-
-    const QuotedPost = ({ originalPost, onThreadSelect }) => {
-        if (!originalPost) return null;
-
-        const postProfile = {
-            name: originalPost.authorName,
-            handle: originalPost.authorHandle,
-            profile: originalPost.authorProfile,
-            profileImageUrl: originalPost.authorImageUrl,
-            color: originalPost.authorColor,
-        };
-        
-        return (
-            <div 
-                className="mt-2 p-3 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                onClick={(e) => { e.stopPropagation(); onThreadSelect(originalPost.id); }}
-            >
-                <div className="flex items-center space-x-2 mb-1">
-                    <ProfilePictureDisplay profile={postProfile} sizeClass="w-5 h-5" textSizeClass="text-xs" />
-                    <span className="font-bold text-xs dark:text-white">{originalPost.authorName}</span>
-                    <span className="text-gray-500 dark:text-gray-400 text-xs">@{originalPost.authorHandle}</span>
-                </div>
-                <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap line-clamp-3">{renderContentWithMentions(originalPost.content)}</p>
-                {originalPost.imageUrl && (
-                    <div className="mt-2 max-h-40 overflow-hidden rounded-xl">
-                        <img 
-                            src={originalPost.imageUrl} 
-                            alt="첨부 이미지" 
-                            className="w-full h-auto object-cover border border-gray-300 dark:border-gray-600"
-                        />
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    const PostItem = (props) => {
-        const { post, onThreadSelect, onRequestDelete, onEditPost, onNewPostAnimated, newPostId, posts, onToggleLike, onToggleBookmark, onRetweetAction, onReplyClick, 
-                isThreadView = false, isMainFocus = false, isPreview = false, drawTopLine, drawBottomLine, isTimelinePreview = false, isTimelineParent = false } = props;
-
-        const [isEditing, setIsEditing] = useState(false);
-        const [editContent, setEditContent] = useState(post.content);
-        const [isFlashing, setIsFlashing] = useState(false);
-        const [showRetweetMenu, setShowRetweetMenu] = useState(false);
-        const hasFlashed = useRef(false);
-
-        const originalPost = posts.find(p => p.id === post.retweetedPostId);
-        const isRetweet = !!post.retweetedPostId;
-        const isSimpleRetweet = isRetweet && !post.content && !post.replyToId;
-
-        const isAuthor = post.authorId === App.currentUserId;
-        const MessageIcon = MessageSquare;
-
-        const targetPostId = isSimpleRetweet && originalPost ? originalPost.id : post.id;
-        const sourcePostForReactions = isSimpleRetweet && originalPost ? originalPost : post;
-
-        const isLiked = sourcePostForReactions.likes?.includes(App.currentUserId);
-        const isBookmarked = sourcePostForReactions.bookmarks?.includes(App.currentUserId);
-
-        const retweetsCount = posts.filter(p => p.retweetedPostId === post.id).length;
-
-        const isRetweetedByCurrentUser = posts.some(p =>
-            p.retweetedPostId === post.id &&
-            !p.content &&
-            !p.replyToId &&
-            p.authorId === App.currentUserId
-        );
-
-        const postProfile = isSimpleRetweet && originalPost ? {
-            name: originalPost.authorName,
-            handle: originalPost.authorHandle,
-            color: originalPost.authorColor,
-            profile: originalPost.authorProfile,
-            profileImageUrl: originalPost.authorImageUrl,
-        } : {
-            name: post.authorName,
-            handle: post.authorHandle,
-            color: post.authorColor,
-            profile: post.authorProfile,
-            profileImageUrl: post.authorImageUrl,
-        };
-
-        // [1. 새 게시글 팝 애니메이션] - useEffect 수정 (1.2s로 변경)
-        useEffect(() => {
-            // 새 게시물이 타임라인에 추가되었을 때만 애니메이션 적용
-            if (post.id === newPostId && !hasFlashed.current && !isThreadView) { 
-                setIsFlashing(true);
-                hasFlashed.current = true;
-                const timer = setTimeout(() => {
-                    setIsFlashing(false);
-                    if (onNewPostAnimated) onNewPostAnimated();
-                }, 1250); // 애니메이션 시간 (1.2s보다 약간 길게)
-                return () => clearTimeout(timer);
-            }
-            if (newPostId === null && isFlashing) {
-                setIsFlashing(false);
-            }
-        }, [newPostId, post.id, onNewPostAnimated, isFlashing, isThreadView]);
-
-
-        const handleSaveEdit = async () => {
-            const success = await onEditPost(post.id, editContent);
-            if (success) {
-                setIsEditing(false);
-            }
-        };
-
-        const replies = useMemo(() => posts
-            .filter(p => p.replyToId === post.id)
-            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()), [posts, post.id]);
-        
-        const hasReplies = replies.length > 0;
-        
-        // [1. 새 게시글 팝 애니메이션] - 클래스 적용
-        const animationClass = isFlashing ? 'animate-pulse-once dark:animate-dark-pulse-once' : '';
-
-        const handlePostClick = (e) => {
-             // Allow clicks on timeline previews to navigate
-            if (isTimelineParent || isTimelinePreview) {
-                 // The parent container has the onClick handler, so we let it propagate
-                return;
-            }
-
-            if (isMainFocus || isPreview) return; 
-
-            const isActionElement = e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('.retweet-menu');
-
-            if (!isActionElement) {
-                const targetThreadId = (isRetweet && originalPost) ? originalPost.id : post.id;
-                onThreadSelect(targetThreadId);
-            }
-        };
-
-        const handleRetweetMenuAction = (e, actionType) => {
-            e.stopPropagation();
-            onRetweetAction(post, actionType);
-            setShowRetweetMenu(false);
-        };
-
-        const handleReplyButtonClick = (e) => {
-            e.stopPropagation();
-            if (App.currentUserId) {
-                onReplyClick(post);
-            }
-        };
-        
-        const finalDrawTopLine = drawTopLine !== undefined ? drawTopLine : props.hasParent;
-        const finalDrawBottomLine = drawBottomLine !== undefined ? drawBottomLine : hasReplies;
-        
-        // [2. 댓글 스레드 구분선 복구] - 스레드 뷰일지라도, 대댓글(replyToId가 있는 경우)이 아니면 경계선을 표시합니다.
-        // isThreadView && post.replyToId 가 참일 경우 (즉, 댓글의 댓글인 경우)에만 경계선을 제거합니다.
-        // isMainFocus는 항상 border-b를 표시해야 스레드 제목 역할을 합니다.
-        const shouldHaveBorder = !isThreadView || isMainFocus || (isThreadView && !post.replyToId);
-        const borderClass = shouldHaveBorder ? `border-b border-gray-100 dark:border-gray-800` : '';
-
-        return (
-            <div className={isTimelinePreview || isTimelineParent ? '' : borderClass}>
-                {isSimpleRetweet && originalPost && (
-                    <div className="flex items-center text-green-500 text-xs font-semibold px-4 pt-2 dark:text-green-400 cursor-default">
-                        {typeof RepeatIcon === 'string' ? <span className="mr-1 text-sm">{RepeatIcon}</span> : <RepeatIcon size={14} className="mr-1" />}
-                        <span>{post.authorName}님이 리트윗했습니다.</span>
-                    </div>
-                )}
-                <div
-                    className={`transition ${animationClass} ${isMainFocus || isPreview ? '' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-                    onClick={handlePostClick}
-                >
-                    <div className="flex items-start p-4">
-                        <div className="mr-3 flex-shrink-0 flex flex-col items-center relative">
-                            {finalDrawTopLine && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-px h-4 bg-gray-300 dark:bg-gray-700"></div>
-                            )}
-                            <ProfilePictureDisplay
-                                profile={postProfile}
-                                sizeClass={isMainFocus ? 'w-12 h-12' : 'w-10 h-10'}
-                                textSizeClass={isMainFocus ? 'text-xl' : 'text-lg'}
-                            />
-                            {finalDrawBottomLine && (
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-px h-full bg-gray-300 dark:bg-gray-700"></div>
-                            )}
-                        </div>
-                        
-
-                        <div className="flex-grow">
-                            <div className="flex items-center justify-between">
-                                {isMainFocus ? (
-                                    <div className="flex flex-col">
-                                        <span className="font-bold dark:text-white truncate text-lg">
-                                            {isSimpleRetweet && originalPost ? originalPost.authorName : post.authorName}
-                                        </span>
-                                        <span className="text-gray-500 dark:text-gray-400 truncate text-sm">
-                                            @{isSimpleRetweet && originalPost ? originalPost.authorHandle : post.authorHandle}
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
-                                        <span className="font-bold text-gray-800 dark:text-white text-sm truncate">
-                                            {isSimpleRetweet && originalPost ? originalPost.authorName : post.authorName}
-                                        </span>
-                                        <span className="truncate">
-                                            @{isSimpleRetweet && originalPost ? originalPost.authorHandle : post.authorHandle}
-                                        </span>
-                                        <span>·</span>
-                                        <span>{formatTimestamp(new Date(post.timestamp))}</span>
-                                        {post.editedAt && <span className="italic text-xs">(수정됨)</span>}
-                                    </div>
-                                )}
-
-                                {isAuthor && !isSimpleRetweet && !isPreview &&(
-                                    <div className="flex space-x-2 flex-shrink-0 ml-auto pl-2">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-                                            className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition disabled:opacity-50 font-medium rounded p-1"
-                                            disabled={isEditing}
-                                        >
-                                            수정
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onRequestDelete(post.id); }}
-                                            className="text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition font-medium rounded p-1"
-                                        >
-                                            삭제
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            {isEditing ? (
-                                <div className="mt-2 flex flex-col space-y-2" onClick={(e) => e.stopPropagation()}>
-                                    <textarea
-                                        value={editContent}
-                                        onChange={(e) => setEditContent(e.target.value)}
-                                        className="w-full p-2 text-sm border border-blue-400 rounded-lg focus:outline-none dark:bg-gray-700 dark:text-gray-100 resize-none"
-                                        rows="3"
-                                    />
-                                    <div className="flex justify-end space-x-2">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setIsEditing(false); }}
-                                            className="px-3 py-1 text-sm text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100"
-                                        >
-                                            취소
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleSaveEdit(); }}
-                                            className="px-3 py-1 text-sm bg-blue-500 text-white rounded-full hover:bg-blue-600 transition disabled:opacity-50"
-                                            disabled={editContent.trim() === post.content.trim() || editContent.trim() === ""}
-                                        >
-                                            저장
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    {isSimpleRetweet && originalPost ? (
-                                        <p className={`text-gray-800 dark:text-gray-200 whitespace-pre-wrap ${isMainFocus ? 'text-lg my-3' : 'mt-1 text-sm'}`}>{renderContentWithMentions(originalPost.content)}</p>
-                                    ) : (
-                                        <>
-                                            <p className={`text-gray-800 dark:text-gray-200 whitespace-pre-wrap ${isMainFocus ? 'text-lg my-3' : 'mt-1 text-sm'}`}>{renderContentWithMentions(post.content)}</p>
-
-                                            {post.imageUrl && !isSimpleRetweet && (
-                                                <div className={`mt-3 ${isMainFocus ? 'max-h-80' : 'max-h-96'} overflow-hidden rounded-xl`}>
-                                                    <img
-                                                        src={post.imageUrl}
-                                                        alt="첨부 이미지"
-                                                        className="w-full h-auto object-cover border border-gray-300 dark:border-gray-600"
-                                                        onError={(e) => { e.target.style.display = 'none'; }}
-                                                    />
-                                                </div>
-                                            )}
-                                            {originalPost && !isSimpleRetweet && <QuotedPost originalPost={originalPost} onThreadSelect={onThreadSelect} />}
-                                        </>
-                                    )}
-                                </>
-                            )}
-                            
-                            {isMainFocus && (
-                                <div className="mt-2 border-y border-gray-200 dark:border-gray-700 py-2">
-                                    <span className="text-gray-500 dark:text-gray-400 flex-shrink-0 text-sm">
-                                        {new Date(post.timestamp).toLocaleString('ko-KR')}
-                                    </span>
-                                    {post.editedAt && <span className="italic text-sm">(수정됨)</span>}
-                                </div>
-                            )}
-
-                            {!isTimelineParent && (
-                                <div className={`flex text-gray-500 dark:text-gray-400 space-x-6 ${isMainFocus ? 'mt-2 text-base' : 'mt-3 text-sm'}`}>
-                                    <button
-                                        onClick={handleReplyButtonClick}
-                                        className="flex items-center space-x-1 hover:text-blue-500 transition"
-                                        disabled={!App.currentUserId}
-                                    >
-                                        {typeof MessageIcon === 'string' ? <span>{MessageIcon}</span> : <MessageIcon size={isMainFocus ? 20 : 16} />}
-                                        <span>{replies.length > 0 ? replies.length : ''}</span>
-                                    </button>
-
-                                    <div className="relative">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setShowRetweetMenu(!showRetweetMenu); }}
-                                            className={`flex items-center space-x-1 transition disabled:opacity-50 ${isRetweetedByCurrentUser ? 'text-green-500 hover:text-green-600' : 'hover:text-green-500'}`}
-                                            disabled={!App.currentUserId}
-                                        >
-                                            {typeof RepeatIcon === 'string'
-                                                ? <span>{RepeatIcon}</span>
-                                                : <RepeatIcon size={isMainFocus ? 20 : 16} className={isRetweetedByCurrentUser ? 'text-green-500' : ''} />
-                                            }
-                                            <span>{retweetsCount > 0 ? retweetsCount : ''}</span>
-                                        </button>
-
-                                        {showRetweetMenu && (
-                                            <div className="retweet-menu absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-700 rounded-xl shadow-xl border border-gray-200 dark:border-gray-600 z-10 overflow-hidden" onClick={e => e.stopPropagation()}>
-                                                <button
-                                                    onClick={(e) => handleRetweetMenuAction(e, 'RT')}
-                                                    className={`w-full text-left px-4 py-2 text-sm transition ${isRetweetedByCurrentUser ? 'text-red-500 hover:bg-red-50 dark:hover:bg-gray-600/50 font-bold' : 'text-green-500 hover:bg-green-50 dark:hover:bg-gray-600/50'}`}
-                                                >
-                                                    {isRetweetedByCurrentUser ? '리트윗 취소' : '리트윗하기'}
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleRetweetMenuAction(e, 'QT')}
-                                                    className="w-full text-left px-4 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                                >
-                                                    인용하여 트윗하기
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); onToggleLike(targetPostId); }}
-                                        className={`flex items-center space-x-1 transition disabled:opacity-50 ${isLiked ? 'text-red-500 hover:text-red-600' : 'hover:text-red-500'}`}
-                                        disabled={!App.currentUserId}
-                                    >
-                                        {typeof Heart === 'string'
-                                            ? <span>{isLiked ? '❤️' : '🤍'}</span>
-                                            : <Heart size={isMainFocus ? 20 : 16} fill={isLiked ? 'currentColor' : 'none'} className={isLiked ? 'text-red-500' : ''} />
-                                        }
-                                        <span>{sourcePostForReactions.likes?.length > 0 ? sourcePostForReactions.likes.length : ''}</span>
-                                    </button>
-
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); onToggleBookmark(targetPostId); }}
-                                        className={`flex items-center space-x-1 transition disabled:opacity-50 ${isBookmarked ? 'text-blue-500 hover:text-blue-600' : 'hover:text-blue-500'}`}
-                                        disabled={!App.currentUserId}
-                                    >
-                                        {typeof Bookmark === 'string'
-                                            ? <span>{isBookmarked ? '★' : '☆'}</span>
-                                            : <Bookmark size={isMainFocus ? 20 : 16} fill={isBookmarked ? 'currentColor' : 'none'} className={isBookmarked ? 'text-blue-500' : ''} />
-                                        }
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const ReplyForm = ({ parentId, onReply, isMainPost = false, currentUserProfile, currentUserId, parentAuthorHandle }) => {
-        const [replyContent, setReplyContent] = useState('');
-        const [imageUrl, setImageUrl] = useState('');
-        const [showImageInput, setShowImageInput] = useState(false);
-        const textareaRef = useRef(null); 
-        
-        useEffect(() => {
-            const initialContent = !isMainPost && parentAuthorHandle ? `@${parentAuthorHandle} ` : '';
-            setReplyContent(initialContent);
-        }, [parentId, parentAuthorHandle, isMainPost]);
-
-        useEffect(() => {
-            if (textareaRef.current) {
-                textareaRef.current.style.height = 'auto'; 
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-            }
-        }, [replyContent]);
-        
-        const formProfile = currentUserProfile || { 
-            profile: '👤', 
-            color: 'bg-gray-500', 
-            handle: '사용자',
-            profileImageUrl: '' 
-        };
-        
-        const handleReplySubmit = (e) => {
-            e.preventDefault();
-            onReply(replyContent, parentId, null, imageUrl.trim()); 
-            const initialContent = !isMainPost && parentAuthorHandle ? `@${parentAuthorHandle} ` : '';
-            setReplyContent(isMainPost ? '' : initialContent);
-            setImageUrl('');
-            setShowImageInput(false);
-        };
-
-        if (!currentUserId && !isMainPost) return null; 
-
-        return (
-          <form onSubmit={handleReplySubmit} className={`flex flex-col ${isMainPost ? 'px-4 pb-4' : 'px-4 py-3'}`}>
-            <div className="flex">
-                <div className="mr-3 flex-shrink-0">
-                    <ProfilePictureDisplay profile={formProfile} sizeClass="w-10 h-10 mt-2" textSizeClass="text-lg" />
-                </div>
-                <textarea
-                    ref={textareaRef}
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder={isMainPost ? "지금 무슨 일이 일어나고 있나요?" : "답글을 게시하세요."}
-                    className="flex-grow p-2 text-base bg-transparent focus:outline-none dark:text-gray-100 resize-none overflow-hidden mt-2"
-                    rows="1"
-                    disabled={!currentUserId}
-                    maxLength="280" 
-                />
-            </div>
-
-            <div className="flex flex-col pl-12 pt-2">
-                <div className="flex items-center justify-between mt-1">
-                    <button
-                        type="button"
-                        onClick={() => setShowImageInput(prev => !prev)}
-                        className="flex items-center text-blue-500 hover:text-blue-600 transition text-sm font-medium"
-                    >
-                        {typeof Image === 'string' ? <span className="mr-1">{Image}</span> : <Image size={16} className="mr-1" />}
-                        이미지 주소 첨부
-                    </button>
-                    <button
-                      type="submit"
-                      className="ml-2 px-4 py-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition disabled:opacity-50 font-semibold text-sm"
-                      disabled={!currentUserId || (replyContent.trim() === "" && imageUrl.trim() === "")}
-                    >
-                      {isMainPost ? '게시' : '답글'}
-                    </button>
-                </div>
-                
-                {showImageInput && (
-                    <div className="mt-2 mb-2">
-                        <input
-                            type="url"
-                            value={imageUrl}
-                            onChange={(e) => setImageUrl(e.target.value)}
-                            placeholder="이미지 주소(URL)를 입력하세요."
-                            className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        />
-                    </div>
-                )}
-                {imageUrl && (
-                    <div className="mb-2 max-h-40 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 relative">
-                        <img 
-                            src={imageUrl} 
-                            alt="미리보기" 
-                            className="w-full object-cover" 
-                            onError={(e) => {e.target.style.display='none';}}
-                        />
-                         <button
-                            type="button"
-                            onClick={() => setImageUrl('')}
-                            className="absolute top-2 right-2 p-1 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition"
-                        >
-                            {typeof X === 'string' ? <span className="text-xs">{X}</span> : <X size={14} />}
-                        </button>
-                    </div>
-                )}
-            </div>
-          </form>
-        );
-    };
-
-const RecursiveReplies = ({ parentId, allPostProps, posts, postsWithChildren }) => {
-    const childReplies = useMemo(() => 
-        posts.filter(p => p.replyToId === parentId)
-             .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()),
-        [parentId, posts]
-    );
-
-    return (
-        <div className="pl-0">
-            {childReplies.map((reply, index) => {
-                const hasChildren = postsWithChildren.has(reply.id);
-                
-                // [2. 댓글 스레드 그룹화] - 대댓글의 대댓글은 isThreadView=true로 전달하여 border-b를 제거합니다.
-                // ExpandableReply 내에서 이미 처리했기 때문에 여기서는 isThreadView=true를 고정합니다.
-                return (
-                    <div key={reply.id}>
-                        <PostItem
-                            {...allPostProps}
-                            post={reply}
-                            isThreadView={true} // 스레드 내 하위 댓글로 처리
-                            drawTopLine={true}
-                            drawBottomLine={hasChildren}
-                        />
-                        {hasChildren && <RecursiveReplies parentId={reply.id} allPostProps={allPostProps} posts={posts} postsWithChildren={postsWithChildren}/>}
-                    </div>
-                )
-            })}
-        </div>
-    );
-};
-
-const ExpandableReply = ({ reply, index, replies, allPostProps, posts, postsWithChildren }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const hasChildren = postsWithChildren.has(reply.id);
-
-    const countDescendants = useCallback((postId) => {
-        const children = posts.filter(p => p.replyToId === postId);
-        let count = children.length;
-        children.forEach(child => {
-            count += countDescendants(child.id);
-        });
-        return count;
-    }, [posts]);
-
-    const descendantCount = useMemo(() => hasChildren ? countDescendants(reply.id) : 0, [hasChildren, reply.id, countDescendants]);
-
-
-    return (
-        <div>
-            <PostItem
-                {...allPostProps}
-                post={reply}
-                isThreadView={true} // 스레드 내 직계 댓글로 처리 (PostItem에서 border 결정)
-                drawTopLine={true}
-                drawBottomLine={hasChildren}
-            />
-            {hasChildren && !isExpanded && (
-                <div className="pb-2" onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}>
-                    <div className="relative pt-1 ml-16 cursor-pointer">
-                        <div className="absolute left-[-26px] top-[-4px] text-center w-5">
-                            <span className="text-gray-400 dark:text-gray-600 text-lg leading-none"></span> {/* 점선 대신 빈 공간 */}
-                        </div>
-                        <span className="text-sm font-semibold text-blue-500 hover:text-blue-600">
-                           {`답글 ${descendantCount}개 보기`}
-                        </span>
-                    </div>
-                </div>
-            )}
-            {hasChildren && isExpanded && (
-                 <RecursiveReplies parentId={reply.id} allPostProps={allPostProps} posts={posts} postsWithChildren={postsWithChildren}/>
-            )}
-        </div>
-    );
-};
-
-// [1. 다크 모드 추가] - 토글 버튼 컴포넌트
-const DarkAndLightModeButton = ({ isDarkMode, onToggle }) => {
-    const Icon = isDarkMode ? Sun : Moon;
-    return (
-        <button
-            onClick={onToggle}
-            className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-            title={isDarkMode ? "라이트 모드로 전환" : "다크 모드로 전환"}
-        >
-            {typeof Icon === 'string' ? <span className="text-xl">{Icon}</span> : <Icon size={20} />}
-        </button>
-    );
-};
-
-const App = () => {
-        const [db, setDb] = useState(null);
-        const [auth, setAuth] = useState(null);
-        const [currentUserId, setCurrentUserId] = useState(getInitialActiveUser());
-        const [posts, setPosts] = useState([]);
-        const [isLoading, setIsLoading] = useState(true);
-        const [activeGroup, setActiveGroup] = useState(MOCK_GROUPS[0].id);
-        const [newPostId, setNewPostId] = useState(null); 
-        const [selectedPostIdForThread, setSelectedPostIdForThread] = useState(null);
-        const [postToDelete, setPostToDelete] = useState(null); 
-        const [currentCustomProfile, setCurrentCustomProfile] = useState(null); 
-        const [allCustomProfiles, setAllCustomProfiles] = useState({}); 
-        const [customGroups, setCustomGroups] = useState({}); 
-        const [editingGroupId, setEditingGroupId] = useState(null); 
-        const [editingGroupName, setEditingGroupName] = useState(''); 
-        
-        const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-        const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false); // [2. 프로필 비밀번호]
-        const [userToAuthenticate, setUserToAuthenticate] = useState(null); // [2. 프로필 비밀번호]
-        const [isProfileSelectorOpen, setIsProfileSelectorOpen] = useState(true); 
-        const [activeView, setActiveView] = useState('timeline'); 
-        const [postToRetweet, setPostToRetweet] = useState(null); 
-        const [replyToPost, setReplyToPost] = useState(null); 
-        const [lastCheckedNotifications, setLastCheckedNotifications] = useState(null);
-        // [1. 다크 모드 추가] - 상태 관리
-        const [isDarkMode, setIsDarkMode] = useState(() => {
-            const stored = localStorage.getItem(DARK_MODE_STORAGE_KEY);
-            if (stored !== null) return stored === 'true';
-            return window.matchMedia('(prefers-color-scheme: dark)').matches;
-        });
-        
-        const { getDoc, doc, onSnapshot, setDoc, collection } = window.firebase || {};
-
-        const mockUserProfile = useMemo(() => 
-            MOCK_USERS.find(user => user.uid === currentUserId), 
-            [currentUserId]
-        );
-
-        const handleToUidMap = useMemo(() => {
-            const map = {};
-            MOCK_USERS.forEach(user => {
-                const customProfile = allCustomProfiles[user.uid];
-                const handle = customProfile?.handle || user.handle;
-                map[handle.toLowerCase()] = user.uid;
-            });
-            return map;
-        }, [allCustomProfiles]);
-
-        const currentUserProfile = useMemo(() => {
-            if (!mockUserProfile) return null;
-            const custom = currentCustomProfile || {}; 
-            const profileImageUrl = custom.profileImageUrl || ''; 
-            return { 
-                ...mockUserProfile, 
-                name: custom.name || mockUserProfile.name,
-                handle: custom.handle || mockUserProfile.handle,
-                profileImageUrl: profileImageUrl, 
-                passwordHash: custom.passwordHash || null, // [2. 프로필 비밀번호]
-            };
-        }, [currentUserId, mockUserProfile, currentCustomProfile]); 
-
-        App.currentUserProfile = currentUserProfile; 
-        App.currentUserId = currentUserId; 
-        
-        const filteredUsers = useMemo(() => 
-            MOCK_USERS.filter(user => user.group === activeGroup),
-            [activeGroup]
-        );
-        
-        const handleThreadSelect = (postId) => {
-            if (postId) {
-                setSelectedPostIdForThread(postId);
-            }
-        };
-        
-        // [2. 프로필 비밀번호] - 프로필 저장 시 비밀번호 해시 저장 로직 추가
-        const handleProfileSave = useCallback(async ({ name, handle, profileImageUrl, passwordHash }) => {
-            if (!db || !currentUserId) return;
-            try {
-                const profileDocRef = doc(db, `/artifacts/${canvasAppId}/public/data/userProfiles`, currentUserId);
-                await setDoc(profileDocRef, { 
-                    name, 
-                    handle, 
-                    profileImageUrl: profileImageUrl.trim(),
-                    passwordHash: passwordHash // 해시된 비밀번호 저장
-                }, { merge: true });
-            } catch (error) {
-                console.error("Error saving profile to Firestore:", error);
-                alert("프로필 저장에 실패했습니다. 콘솔을 확인해 주세요.");
-            }
-            setIsProfileModalOpen(false);
-        }, [db, currentUserId]);
-        
-        const handleLogout = () => {
-            setCurrentUserId(null); 
-            localStorage.removeItem(ACTIVE_USER_STORAGE_KEY);
-            setActiveView('timeline'); 
-            setSelectedPostIdForThread(null);
-        };
-        
-        const toggleProfileSelector = () => {
-            setIsProfileSelectorOpen(prev => !prev);
-        };
-
-        const handleProfileSwitch = (user) => {
-            const fullProfile = allCustomProfiles[user.uid] ? { ...user, ...allCustomProfiles[user.uid] } : user;
+            function handleEditorCursorChange() { const cursorPos = sceneScriptEditor.selectionStart; const textUpToCursor = sceneScriptEditor.value.substring(0, cursorPos); const lineStart = textUpToCursor.lastIndexOf('\n') + 1; const lineEnd = sceneScriptEditor.value.indexOf('\n', lineStart); const currentLine = sceneScriptEditor.value.substring(lineStart, lineEnd === -1 ? undefined : lineEnd); const scriptLines = sceneScriptEditor.value.split('\n'); const currentLineIndex = textUpToCursor.split('\n').length - 1; const hotspotMatch = currentLine.match(/^@\s*(.*?)\s*\{/); document.querySelectorAll('.hotspot-preview').forEach(p => p.classList.remove('selected')); if (hotspotMatch) { const preview = document.querySelector(`.hotspot-preview[data-line-index="${currentLineIndex}"]`); if (preview) { preview.classList.add('selected'); } } }
+            function insertAtCursor(textarea, textToInsert) { const start = textarea.selectionStart; const end = textarea.selectionEnd; const text = textarea.value; textarea.value = text.substring(0, start) + textToInsert + text.substring(end); textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length; textarea.focus(); textarea.dispatchEvent(new Event('input', { bubbles:true, cancelable:true })); }
             
-            if (currentUserId === user.uid) {
-                return handleLogout(); 
-            }
+            // --- EVENT LISTENERS ---
+            (function setupListeners(){
+                gameContainer.addEventListener('click', advanceFlow);
+                toggleAdminBtn.addEventListener('click', toggleAdminMode);
+                adminPanelToggle.addEventListener('click', toggleAdminPanel);
+                
+                exitHotspotBtn.addEventListener('click', () => {
+                    currentItemIndex++;
+                    processNextItem();
+                });
+                
+                backToLobbyBtn.addEventListener('click', showLobby);
+                
+                restartGameBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    restartOptions.classList.toggle('hidden');
+                    restartOptions.classList.toggle('flex');
+                });
 
-            // [2. 프로필 비밀번호] - 비밀번호 설정 확인 및 모달 열기
-            if (fullProfile.passwordHash) {
-                setUserToAuthenticate(fullProfile);
-                setIsPasswordModalOpen(true);
-            } else {
-                performLogin(user);
-            }
-        };
-        
-        // [2. 프로필 비밀번호] - 실제 로그인 수행 로직
-        const performLogin = useCallback((user) => {
-            setCurrentUserId(user.uid);
-            localStorage.setItem(ACTIVE_USER_STORAGE_KEY, user.uid);
-            setIsProfileSelectorOpen(false); 
-            setActiveView('timeline'); 
-            setSelectedPostIdForThread(null);
-            setIsPasswordModalOpen(false);
-            setUserToAuthenticate(null);
-        }, []);
+                document.addEventListener('click', (e) => {
+                    if (!restartBtnContainer.contains(e.target)) {
+                        restartOptions.classList.add('hidden');
+                        restartOptions.classList.remove('flex');
+                    }
+                });
+                
+                restartSceneBtn.addEventListener('click', () => {
+                    renderScene(currentSceneId);
+                    restartOptions.classList.add('hidden');
+                    restartOptions.classList.remove('flex');
+                });
+                restartStoryBtn.addEventListener('click', () => {
+                    renderScene('start');
+                    restartOptions.classList.add('hidden');
+                    restartOptions.classList.remove('flex');
+                });
+                
+                createNewStoryBtn.addEventListener('click', createNewStory);
+                sceneIdSelect.addEventListener('change', () => { renderScene(sceneIdSelect.value); updateAdminPanel(); });
+                addSceneBtn.addEventListener('click', async () => { const newSceneId = await showInput("새 장면의 ID를 입력하세요:", `scene_${Object.keys(storyData).length + 1}`); if (newSceneId && !storyData[newSceneId]) { storyData[newSceneId] = { backgroundImage: '', script: `[인물: 나레이션]\n새로운 장면입니다.` }; renderScene(newSceneId); updateAdminPanel(); } else if (newSceneId) { showMessage("이미 존재하는 장면 ID이거나 입력이 취소되었습니다."); } });
+                deleteSceneBtn.addEventListener('click', async () => { if (Object.keys(storyData).length <= 1) { showMessage("마지막 남은 장면은 삭제할 수 없습니다."); return; } if (await showConfirm(`정말로 '${currentSceneId}' 장면을 삭제하시겠습니까?`)) { delete storyData[currentSceneId]; renderScene('start'); updateAdminPanel(); } });
+                bgImageInput.addEventListener('input', () => { const scene = storyData[currentSceneId]; if (scene) scene.backgroundImage = bgImageInput.value; gameScreen.style.backgroundImage = `url(${bgImageInput.value})`; });
+                sceneScriptEditor.addEventListener('input', () => { const scene = storyData[currentSceneId]; if(scene) scene.script = sceneScriptEditor.value; if (!isInteractingWithHotspot) { updateAdminPanel(); } });
+                sceneScriptEditor.addEventListener('keyup', handleEditorCursorChange);
+                sceneScriptEditor.addEventListener('click', handleEditorCursorChange);
+                insertLocationBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '[장소: 장소 이름]\n'));
+                insertEventBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '[EVENT: 이벤트 발생!]\n'));
+                insertDialogueBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[인물: 이름]\n대사를 입력하세요.\n'));
+                insertLabelBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[LABEL: 레이블_이름]\n'));
+                insertChoiceBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[선택지]\n> 선택지 1 {GOTO: 장면ID@레이블ID}\n> 선택지 2 {SHOW: 출력될 텍스트}\n'));
+                insertHotspotBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[조사지점]\n@ 이름 {X: 10, Y: 10, W: 20, H: 20, SHOW: 출력될 텍스트}\n'));
+                insertGotoBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[GOTO: 장면ID]\n'));
 
-
-        const handleSaveGroupName = useCallback(async (groupId) => {
-            if (!db || !groupId || editingGroupName.trim() === '') return;
-            try {
-                const groupDocRef = doc(db, `/artifacts/${canvasAppId}/public/data/customGroups`, groupId);
-                await setDoc(groupDocRef, { name: editingGroupName.trim() }, { merge: true });
-                setEditingGroupId(null);
-                setEditingGroupName('');
-            } catch (error) {
-                console.error("Error saving group name to Firestore:", error);
-                alert("팀 이름 저장에 실패했습니다.");
-            }
-        }, [db, editingGroupName]);
-
-        const handleStartEditGroup = useCallback((group) => {
-            const initialName = customGroups[group.id] || group.name;
-            setActiveGroup(group.id);
-            setEditingGroupName(initialName);
-            setEditingGroupId(group.id);
-        }, [customGroups]);
-
-        const handleCancelEditGroup = useCallback(() => {
-            setEditingGroupId(null);
-            setEditingGroupName('');
-        }, []);
-
-
-        useEffect(() => {
-            if (!initializeApp || !getAuth || !getFirestore) {
-                setIsLoading(false);
-                return;
-            }
-            if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.apiKey) {
-                setIsLoading(false);
-                return;
-            }
-
+                syntaxHelpBtn.addEventListener('click', () => syntaxModal.classList.remove('hidden'));
+                syntaxCloseBtn.addEventListener('click', () => syntaxModal.classList.add('hidden'));
+                saveStoryBtn.addEventListener('click', async () => { if (!db || !currentStoryId) { showMessage("DB에 연결되지 않았거나 스토리가 선택되지 않았습니다."); return; } loadingSpinner.classList.remove('hidden'); try { await setDoc(doc(db, "stories", currentStoryId), { title: storyTitleInput.value, subtitle: storySubtitleInput.value, data: JSON.stringify(storyData) }, { merge: true }); showMessage("스토리가 성공적으로 저장되었습니다!"); } catch (error) { showMessage("스토리 저장 중 오류가 발생했습니다."); } finally { loadingSpinner.classList.add('hidden'); } });
+            })();
+            
+            // --- FIREBASE & APP START ---
+            let db;
             try {
                 const app = initializeApp(firebaseConfig);
-                const firestore = getFirestore(app);
-                const firebaseAuth = getAuth(app);
+                db = getFirestore(app);
+                const auth = getAuth(app);
+                await signInAnonymously(auth);
+                currentUser = auth.currentUser;
 
-                setDb(firestore);
-                setAuth(firebaseAuth);
-                
-                const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
-                    if (!user) {
-                        try {
-                            if (initialAuthToken) {
-                                await signInWithCustomToken(firebaseAuth, initialAuthToken);
-                            } else {
-                                await signInAnonymously(firebaseAuth);
-                            }
-                        } catch (e) {
-                            console.error("인증 시도 실패:", e.code, e.message);
-                        }
-                    }
-                    setIsLoading(false); 
-                }, (error) => {
-                    console.error("onAuthStateChanged 오류:", error);
-                    setIsLoading(false);
+                const q = query(collection(db, "stories"));
+                onSnapshot(q, (querySnapshot) => {
+                    storyList.innerHTML = '';
+                    if (querySnapshot.empty) { storyList.innerHTML = `<p class="text-center text-gray-400">생성된 스토리가 없습니다. 새 스토리를 만들어보세요!</p>`; }
+                    const docs = querySnapshot.docs;
+                    docs.forEach((doc) => {
+                        const story = doc.data();
+                        const storyEl = document.createElement('div');
+                        storyEl.className = "story-item";
+                        
+                        const mainContent = document.createElement('div');
+                        mainContent.innerHTML = `<div class="story-item-title">${story.title || "제목 없음"}</div><div class="story-item-meta">${story.subtitle || "부제목 없음"}</div>`;
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+                        deleteBtn.className = "text-red-400 hover:text-red-600 ml-4 flex-shrink-0 p-2";
+                        deleteBtn.onclick = (e) => { e.stopPropagation(); deleteStory(doc.id); };
+                        
+                        storyEl.appendChild(mainContent);
+                        storyEl.appendChild(deleteBtn);
+                        storyEl.onclick = () => loadAndPlayStory(doc.id, doc);
+
+
+                        storyList.appendChild(storyEl);
+                    });
                 });
-
-                return () => unsubscribe();
-            } catch (e) {
-                console.error("Firebase 초기화 또는 인증 오류:", e.name, e.message);
-                setIsLoading(false);
+                loadingSpinner.classList.add('hidden');
+                showLobby();
+            } catch (error) {
+                loadingSpinner.classList.add('hidden');
+                showMessage("Firebase 초기화 실패: " + error.message);
             }
-        }, []);
-        
-        // [1. 다크 모드 추가] - Dark Mode 상태를 body 클래스에 반영 및 로컬 스토리지에 저장
-        useEffect(() => {
-            if (isDarkMode) {
-                document.body.classList.add('dark');
-                localStorage.setItem(DARK_MODE_STORAGE_KEY, 'true');
-            } else {
-                document.body.classList.remove('dark');
-                localStorage.setItem(DARK_MODE_STORAGE_KEY, 'false');
-            }
-        }, [isDarkMode]);
-
-        // [1. 다크 모드 추가] - 토글 핸들러
-        const toggleDarkMode = useCallback(() => {
-            setIsDarkMode(prev => !prev);
-        }, []);
-
-        useEffect(() => {
-            if (!db || !currentUserId) {
-                setCurrentCustomProfile(null);
-                return;
-            }
-
-            const profileDocRef = doc(db, `/artifacts/${canvasAppId}/public/data/userProfiles`, currentUserId);
-            const unsubscribe = onSnapshot(profileDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    setCurrentCustomProfile(docSnap.data());
-                } else {
-                    setCurrentCustomProfile({}); 
-                }
-            }, (error) => {
-                console.error("Firestore Profile 불러오기 오류:", error);
-                setCurrentCustomProfile({});
-            });
-            return () => unsubscribe();
-        }, [db, currentUserId]);
-
-        useEffect(() => {
-            if (!db || isLoading) return;
-            const profilesColRef = collection(db, `/artifacts/${canvasAppId}/public/data/userProfiles`);
-            const unsubscribe = onSnapshot(profilesColRef, (snapshot) => {
-                const fetchedProfiles = {};
-                snapshot.docs.forEach(doc => {
-                    fetchedProfiles[doc.id] = doc.data();
-                });
-                setAllCustomProfiles(fetchedProfiles);
-            }, (error) => {
-                console.error("Firestore All Profiles 불러오기 오류:", error);
-            });
-            return () => unsubscribe();
-        }, [db, isLoading]);
-
-        useEffect(() => {
-            if (!db || isLoading) return;
-            const groupsColRef = collection(db, `/artifacts/${canvasAppId}/public/data/customGroups`);
-            const unsubscribe = onSnapshot(groupsColRef, (snapshot) => {
-                const fetchedGroups = {};
-                snapshot.docs.forEach(doc => {
-                    fetchedGroups[doc.id] = doc.data().name;
-                });
-                setCustomGroups(fetchedGroups);
-            }, (error) => {
-                console.error("Firestore Custom Groups 불러오기 오류:", error);
-            });
-            return () => unsubscribe();
-        }, [db, isLoading]);
-
-        useEffect(() => {
-            if (currentUserId) {
-                const storedTime = localStorage.getItem(`${LAST_CHECKED_NOTIFICATIONS_KEY}_${currentUserId}`);
-                setLastCheckedNotifications(storedTime ? new Date(parseInt(storedTime)) : new Date(0));
-            }
-        }, [currentUserId]);
-
-        useEffect(() => {
-            if (!db || isLoading) return;
-            const postsColRef = collection(db, `/artifacts/${canvasAppId}/public/data/posts`);
-            const q = query(postsColRef);
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                const fetchedPosts = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    timestamp: doc.data().timestamp?.toDate() || new Date(),
-                    threadUpdatedTimestamp: doc.data().threadUpdatedTimestamp?.toDate(),
-                    likes: doc.data().likes || [], 
-                    bookmarks: doc.data().bookmarks || [], 
-                    retweetedPostId: doc.data().retweetedPostId || null,
-                    imageUrl: doc.data().imageUrl || null,
-                    mentions: doc.data().mentions || [],
-                }));
-                
-                // Firestore에서 가져온 데이터를 timestamp 기준으로 한 번 정렬해 줍니다.
-                const sortedPosts = fetchedPosts.sort((a, b) => {
-                    const aTime = a.timestamp.getTime();
-                    const bTime = b.timestamp.getTime();
-                    return bTime - aTime; 
-                });
-                setPosts(sortedPosts);
-            }, (error) => {
-                console.error("Firestore 데이터 불러오기 오류:", error);
-            });
-            return () => unsubscribe();
-        }, [db, isLoading]); 
-
-        const handleReplyClick = useCallback((post) => {
-            if (App.currentUserId) {
-                setReplyToPost(post);
-            }
-        }, []);
-        
-        const handleCancelReply = useCallback(() => {
-            setReplyToPost(null);
-        }, []);
-
-        const handlePost = useCallback(async (content, replyToId = null, retweetedPostId = null, imageUrl = null) => {
-            if (!db || !currentUserId || !getDoc) return;
-            if (content.trim() === "" && !retweetedPostId && !imageUrl) return;
-
-            const postingProfile = currentUserProfile || { 
-                uid: currentUserId, name: "Anonymous User", handle: "anonymous", color: "bg-gray-500", profile: "👤", profileImageUrl: '' 
-            };
-            
-            const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-            const mentions = new Set();
-            let match;
-            while ((match = mentionRegex.exec(content)) !== null) {
-                const handle = match[1].toLowerCase();
-                if (handleToUidMap[handle]) {
-                    mentions.add(handleToUidMap[handle]);
-                }
-            }
-            
-            // 답글을 달 때, 원본 게시물(rootPost)의 threadUpdatedTimestamp를 업데이트하는 로직은 삭제합니다.
-            // 이제 개별 '가지'가 타임라인 순서를 결정하므로, 루트 게시물의 시간을 바꿀 필요가 없습니다.
-
-            try {
-                const postsColRef = collection(db, `/artifacts/${canvasAppId}/public/data/posts`);
-                const newDocRef = await addDoc(postsColRef, {
-                    content: content,
-                    authorId: postingProfile.uid,
-                    authorName: postingProfile.name, 
-                    authorHandle: postingProfile.handle, 
-                    authorColor: postingProfile.color,
-                    authorProfile: postingProfile.profile,
-                    authorImageUrl: postingProfile.profileImageUrl, 
-                    replyToId: replyToId, 
-                    retweetedPostId: retweetedPostId,
-                    imageUrl: imageUrl && imageUrl.startsWith('http') ? imageUrl : null,
-                    timestamp: serverTimestamp(),
-                    likes: [], 
-                    bookmarks: [],
-                    mentions: Array.from(mentions),
-                });
-
-                setNewPostId(newDocRef.id); 
-            } catch (e) {
-                console.error("게시 실패:", e);
-            }
-        }, [db, currentUserId, currentUserProfile, getDoc, handleToUidMap]);
-        
-        const handleRetweetAction = useCallback(async (targetPost, actionType) => {
-            if (!currentUserId || !targetPost) return;
-            const isSimpleRetweetPost = targetPost.retweetedPostId && !targetPost.content && !targetPost.replyToId;
-            const targetOriginalId = isSimpleRetweetPost ? targetPost.retweetedPostId : targetPost.id;
-            
-            if (!targetOriginalId) {
-                 if (isSimpleRetweetPost) {
-                    try {
-                        await deleteDoc(doc(db, `/artifacts/${canvasAppId}/public/data/posts`, targetPost.id));
-                    } catch(e) { /* silent fail */ }
-                 }
-                 return console.error("액션 대상 원본 게시물을 찾을 수 없습니다.");
-            }
-            const postToQuote = posts.find(p => p.id === targetOriginalId);
-
-            if (actionType === 'QT') {
-                if (!postToQuote) return console.error("인용할 원본 게시물을 찾을 수 없습니다.");
-                setPostToRetweet({ post: postToQuote, action: 'QT' });
-            } else if (actionType === 'RT') {
-                const existingSimpleRT = posts.find(p => 
-                    p.retweetedPostId === targetOriginalId && 
-                    !p.content && 
-                    !p.replyToId && 
-                    p.authorId === currentUserId
-                );
-                
-                if (existingSimpleRT) {
-                    try {
-                        const docRef = doc(db, `/artifacts/${canvasAppId}/public/data/posts`, existingSimpleRT.id);
-                        await deleteDoc(docRef);
-                    } catch (e) {
-                        console.error("언리트윗 실패:", e);
-                    }
-                } else {
-                    if (!postToQuote) return console.error("리트윗할 원본 게시물을 찾을 수 없습니다.");
-                    await handlePost("", null, targetOriginalId, null);
-                }
-            }
-        }, [currentUserId, posts, handlePost, db]);
-        
-        const submitQuoteTweet = useCallback(async (content, originalPostId, imageUrl) => {
-            if (content.trim() === "" && imageUrl.trim() === "") return;
-            await handlePost(content, null, originalPostId, imageUrl);
-            setPostToRetweet(null);
-        }, [handlePost]);
-
-        const toggleReaction = useCallback(async (postId, fieldName) => {
-            if (!db || !currentUserId || !getDoc) return;
-            try {
-                const docRef = doc(db, `/artifacts/${canvasAppId}/public/data/posts`, postId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const postData = docSnap.data();
-                    const currentUsers = postData[fieldName] || [];
-                    let newUsers;
-                    if (currentUsers.includes(currentUserId)) {
-                        newUsers = currentUsers.filter(uid => uid !== currentUserId);
-                    } else {
-                        newUsers = [...currentUsers, currentUserId];
-                    }
-                    await updateDoc(docRef, { [fieldName]: newUsers });
-                }
-            } catch (e) {
-                console.error(`${fieldName} 토글 실패:`, e);
-            }
-        }, [db, currentUserId, getDoc]);
-
-        const handleToggleLike = useCallback((postId) => {
-            toggleReaction(postId, 'likes');
-        }, [toggleReaction]);
-
-        const handleToggleBookmark = useCallback((postId) => {
-            toggleReaction(postId, 'bookmarks');
-        }, [toggleReaction]);
-
-        const handleRequestDelete = useCallback((postId) => {
-            const post = posts.find(p => p.id === postId);
-            if (post) {
-                setPostToDelete({ id: postId, content: post.content, authorHandle: post.authorHandle, imageUrl: post.imageUrl }); 
-            }
-        }, [posts]);
-        
-        const confirmDelete = useCallback(async () => {
-            if (!db || !postToDelete) return;
-            try {
-                const docRef = doc(db, `/artifacts/${canvasAppId}/public/data/posts`, postToDelete.id);
-                await deleteDoc(docRef);
-                if (selectedPostIdForThread === postToDelete.id) {
-                    setSelectedPostIdForThread(null);
-                }
-            } catch (e) {
-                console.error("게시물 삭제 실패:", e);
-            } finally {
-                setPostToDelete(null); 
-            }
-        }, [db, postToDelete, selectedPostIdForThread]);
-
-        const cancelDelete = useCallback(() => {
-            setPostToDelete(null);
-        }, []);
-
-        const clearNewPostId = useCallback(() => {
-            setNewPostId(null);
-        }, []);
-
-        const handleEditPost = useCallback(async (postId, newContent) => {
-            if (!db || !currentUserId || newContent.trim() === "") return false;
-            try {
-                const docRef = doc(db, `/artifacts/${canvasAppId}/public/data/posts`, postId);
-                await updateDoc(docRef, { 
-                    content: newContent,
-                    editedAt: serverTimestamp() 
-                });
-                return true;
-            } catch (e) {
-                console.error("게시물 수정 실패:", e);
-                return false;
-            }
-        }, [db, currentUserId]);
-
-        const mentionPosts = useMemo(() => {
-            if (!currentUserId) return [];
-            return posts
-                .filter(p => p.mentions?.includes(currentUserId))
-                .sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime());
-        }, [posts, currentUserId]);
-
-        const unreadMentionCount = useMemo(() => {
-            if (!lastCheckedNotifications) return 0;
-            return mentionPosts.filter(p => p.timestamp > lastCheckedNotifications).length;
-        }, [mentionPosts, lastCheckedNotifications]);
-
-
-        // [!!!] 여기가 '나뭇가지' 로직의 핵심입니다. (수정됨)
-        const displayItems = useMemo(() => {
-            if (selectedPostIdForThread) return [];
-
-            if (activeView === 'likes') {
-                if (!currentUserId) return [];
-                return posts.filter(p => p.likes?.includes(currentUserId));
-            }
-            if (activeView === 'bookmarks') {
-                if (!currentUserId) return [];
-                return posts.filter(p => p.bookmarks?.includes(currentUserId));
-            }
-            if (activeView === 'notifications') {
-                return mentionPosts;
-            }
-
-            if (activeView === 'timeline') {
-                const postsById = new Map(posts.map(p => [p.id, p]));
-                const timelineActivities = [];
-                const processedBranches = new Set(); // 처리된 '가지'를 추적합니다. (첫 번째 댓글 ID 기준)
-
-                // 모든 게시물을 최신순으로 순회합니다.
-                for (const latestPostInActivity of posts) {
-                    
-                    // 단순 리트윗을 먼저 처리합니다.
-                    // 단순 리트윗을 먼저 처리합니다.
-                    if (latestPostInActivity.retweetedPostId && !latestPostInActivity.content && !latestPostInActivity.replyToId) {
-                        if (!processedBranches.has(latestPostInActivity.id)) { // 중복 방지를 위해 자신의 ID를 사용
-                            timelineActivities.push({ type: 'retweet', activity: latestPostInActivity, id: latestPostInActivity.id });
-                            processedBranches.add(latestPostInActivity.id);
-                        }
-                        continue;
-                    }
-                    
-                    // 최신 게시물부터 루트까지의 대화 경로를 추적합니다.
-                    const path = [];
-                    let current = latestPostInActivity;
-                    while (current) {
-                        path.unshift(current);
-                        current = postsById.get(current.replyToId);
-                    }
-
-                    const rootPost = path[0];
-                    if (!rootPost) continue;
-
-                    // '가지'는 루트 게시물에 달린 첫 번째 댓글로 식별합니다.
-                    // 경로에 루트만 있다면, 가지 ID는 루트의 ID가 됩니다.
-                    const branchIdentifier = path.length > 1 ? path[1].id : rootPost.id;
-
-                    // 이 가지에서 더 최신 활동을 이미 처리했다면 건너킵니다.
-                    if (processedBranches.has(branchIdentifier)) {
-                        continue;
-                    }
-
-                    // 경로 구조에 따라 타임라인 아이템을 구성합니다.
-                    if (path.length === 1) { // 케이스 1: 댓글이 없는 원본 게시물
-                        timelineActivities.push({
-                            type: 'root_only',
-                            rootPost: rootPost,
-                            id: rootPost.id
-                        });
-                    } else if (path.length === 2) { // 케이스 2: 원본 게시물에 달린 단일 댓글
-                        timelineActivities.push({
-                            type: 'single_reply',
-                            rootPost: rootPost,
-                            reply: path[1], // 유일한 댓글
-                            id: branchIdentifier
-                        });
-                    } else { // 케이스 3: 중첩된 대화 (3단 구조로 표시)
-                        timelineActivities.push({
-                            type: 'branch',
-                            rootPost: rootPost,
-                            parentReply: path[path.length - 2], // 최신 댓글의 바로 위 부모
-                            latestReply: latestPostInActivity,
-                            id: branchIdentifier
-                        });
-                    }
-                    
-                    // 이 가지는 처리되었음을 표시하여 중복으로 타임라인에 나타나지 않도록 합니다.
-                    processedBranches.add(branchIdentifier);
-                }
-                
-                return timelineActivities;
-            }
-            
-            return [];
-        }, [posts, currentUserId, activeView, selectedPostIdForThread, mentionPosts]);
-        
-        const threadData = useMemo(() => {
-            if (!selectedPostIdForThread) return null;
-
-            const postsById = new Map(posts.map(p => [p.id, p]));
-            const selectedPost = postsById.get(selectedPostIdForThread);
-            if (!selectedPost) return null;
-
-            const parentPosts = [];
-            let current = selectedPost;
-            while (current.replyToId) {
-                const parent = postsById.get(current.replyToId);
-                if (!parent) break;
-                parentPosts.unshift(parent);
-                current = parent;
-            }
-            
-            const replies = posts
-                .filter(p => p.replyToId === selectedPostIdForThread)
-                .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-            
-            const postsWithChildren = new Set(posts.map(p => p.replyToId).filter(id => id));
-            const hasNestedReplies = replies.some(r => postsWithChildren.has(r.id));
-            
-            return { parentPosts, selectedPost, replies, hasNestedReplies, postsWithChildren };
-        }, [selectedPostIdForThread, posts]);
-
-        const currentViewData = VIEW_OPTIONS.find(v => v.id === activeView);
-        const LoaderIcon = Loader; 
-        const ToggleIcon = isProfileSelectorOpen ? ChevronUp : ChevronDown;
-
-        if (isLoading) {
-            return (
-                <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-                    {typeof LoaderIcon === 'string' ? <span className="animate-spin mr-2 text-2xl">{LoaderIcon}</span> : <LoaderIcon className="animate-spin mr-2" size={24} />}
-                    데이터 로딩 중...
-                </div>
-            );
-        }
-        
-        const handleThreadBackClick = () => {
-            setSelectedPostIdForThread(null);
-        };
-        
-        const currentProfileDisplay = currentUserProfile || { name: '로그아웃됨', handle: 'guest', profile: '?', color: 'bg-gray-500', profileImageUrl: '' };
-        
-        const allPostProps = {
-            onThreadSelect: handleThreadSelect, 
-            onEditPost: handleEditPost, 
-            onRequestDelete: handleRequestDelete, 
-            onNewPostAnimated: clearNewPostId, 
-            newPostId, 
-            posts, 
-            onToggleLike: handleToggleLike, 
-            onToggleBookmark: handleToggleBookmark, 
-            onRetweetAction: handleRetweetAction, 
-            onReplyClick: handleReplyClick
         };
 
-        return (
-            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 font-sans antialiased pt-[70px]"> 
-                
-                <div className="fixed top-0 left-0 right-0 z-20 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-                    <div className="w-full max-w-xl md:w-[576px] mx-auto p-3 flex justify-between items-center"> 
-                        <button
-                            onClick={toggleProfileSelector}
-                            className="flex items-center space-x-2 text-lg font-bold text-gray-800 dark:text-white focus:outline-none"
-                            aria-expanded={isProfileSelectorOpen}
-                        >
-                            <ProfilePictureDisplay 
-                                profile={currentProfileDisplay} 
-                                sizeClass="w-8 h-8" 
-                                textSizeClass="text-lg" 
-                            />
-                            <div className="flex flex-col items-start truncate max-w-[120px] sm:max-w-full">
-                                <p className="font-bold text-base leading-tight truncate">{currentProfileDisplay.name}</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 leading-tight truncate">@{currentProfileDisplay.handle}</p>
-                            </div>
-                            <div className={`w-5 h-5 transition-transform duration-300 flex items-center justify-center`}>
-                                {typeof ToggleIcon === 'string' 
-                                    ? <span className="text-xl">{ToggleIcon}</span> 
-                                    : <ToggleIcon size={20} className={isProfileSelectorOpen ? 'rotate-180' : 'rotate-0'} />
-                                }
-                            </div>
-                        </button>
-
-                        <div className="space-x-2 flex items-center">
-                            {/* [1. 다크 모드 추가] - 토글 버튼 위치 */}
-                            <DarkAndLightModeButton 
-                                isDarkMode={isDarkMode} 
-                                onToggle={toggleDarkMode}
-                            />
-
-                            {currentUserId && (
-                                <button 
-                                    onClick={() => setIsProfileModalOpen(true)}
-                                    className="px-3 py-1 bg-white text-blue-600 border border-blue-600 rounded-full font-medium shadow-sm hover:bg-blue-50 transition duration-150 text-sm dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-blue-400 dark:border-blue-400"
-                                >
-                                    수정
-                                </button>
-                            )}
-                            
-                            <button 
-                                onClick={handleLogout}
-                                className="px-3 py-1 bg-white text-red-600 border border-red-600 rounded-full font-medium shadow-sm hover:bg-red-50 transition duration-150 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-red-400 dark:border-red-400"
-                            >
-                                로그아웃
-                            </button>
-                        </div>
-                    </div>
-
-                    <div 
-                        className={`transition-all duration-300 ease-in-out overflow-hidden w-full max-w-xl md:w-[576px] mx-auto ${isProfileSelectorOpen ? 'max-h-[500px] opacity-100 p-4 pt-0' : 'max-h-0 opacity-0 p-0'}`}
-                    >
-                        <div className="flex justify-around p-2 mb-3 bg-gray-100 dark:bg-gray-900 rounded-lg shadow-inner">
-                            {MOCK_GROUPS.map(group => {
-                                const isEditing = editingGroupId === group.id;
-                                const displayName = customGroups[group.id] || group.name;
-
-                                if (isEditing) {
-                                    return (
-                                        <div key={group.id} className="p-1 flex flex-col items-center w-1/4">
-                                            <input
-                                                type="text"
-                                                value={editingGroupName}
-                                                onChange={(e) => setEditingGroupName(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' && editingGroupName.trim() !== '' && editingGroupName.trim() !== displayName) {
-                                                        handleSaveGroupName(group.id);
-                                                    } 
-                                                    else if (e.key === 'Escape') {
-                                                        handleCancelEditGroup();
-                                                    }
-                                                }}
-                                                className="w-full text-center text-sm font-semibold rounded-md border border-blue-400 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white mb-1"
-                                                maxLength="10"
-                                            />
-                                            <div className="flex space-x-1">
-                                                <button
-                                                    onClick={() => handleSaveGroupName(group.id)}
-                                                    disabled={editingGroupName.trim() === '' || editingGroupName.trim() === displayName}
-                                                    className="text-xs px-1 py-0.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 transition"
-                                                >
-                                                    저장
-                                                </button>
-                                                <button
-                                                    onClick={handleCancelEditGroup}
-                                                    className="text-xs px-1 py-0.5 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition"
-                                                >
-                                                    취소
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-
-                                return (
-                                    <button
-                                        key={group.id}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (activeGroup === group.id) {
-                                                handleStartEditGroup(group);
-                                            } else {
-                                                setActiveGroup(group.id);
-                                            }
-                                        }}
-                                        className={`flex flex-col items-center p-2 rounded-lg text-sm transition font-semibold w-1/4
-                                        ${activeGroup === group.id 
-                                            ? 'text-blue-600 bg-white dark:bg-gray-700 shadow-md' 
-                                            : 'text-gray-500 hover:text-blue-500 dark:text-gray-400'
-                                        }
-                                        `}
-                                    >
-                                        <span className="text-xl">{group.icon}</span>
-                                        {displayName}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="p-2 bg-gray-50 dark:bg-gray-900 rounded-lg max-h-60 overflow-y-auto">
-                            <span className="font-semibold text-gray-500 dark:text-gray-400 self-center mb-2 block border-b pb-1 dark:border-gray-700">
-                                {customGroups[activeGroup] || MOCK_GROUPS.find(g => g.id === activeGroup)?.name} 프로필 선택:
-                            </span>
-                            <div className="flex flex-wrap justify-center gap-3">
-                                {filteredUsers.map(user => {
-                                    const custom = allCustomProfiles[user.uid] || {};
-                                    const displayProfile = {
-                                        ...user,
-                                        name: custom.name || user.name,
-                                        handle: custom.handle || user.handle,
-                                        profileImageUrl: custom.profileImageUrl || '',
-                                        passwordHash: custom.passwordHash || null, // [2. 프로필 비밀번호]
-                                    };
-
-                                    return (
-                                        <button
-                                            key={user.uid}
-                                            onClick={() => handleProfileSwitch(user)}
-                                            className={`flex items-center p-3 rounded-xl text-white transition w-full max-w-[48%] sm:max-w-[30%]
-                                            ${user.color} 
-                                            ${currentUserId === user.uid ? 'ring-4 ring-offset-2 ring-red-400 scale-[1.01] opacity-100 shadow-lg' : 'opacity-80 hover:opacity-100'}
-                                            `}
-                                        >
-                                            <div className="mr-2">
-                                                <ProfilePictureDisplay 
-                                                    profile={displayProfile} 
-                                                    sizeClass="w-8 h-8"
-                                                    textSizeClass="text-sm"
-                                                    isSmall={true}
-                                                />
-                                            </div>
-                                            
-                                            <div className="text-left flex-grow truncate">
-                                                <p className="font-bold truncate">{displayProfile.name}</p>
-                                                <p className="text-xs truncate">@{displayProfile.handle}</p>
-                                            </div>
-                                            {displayProfile.passwordHash && (
-                                                <span className="text-xs ml-1">🔒</span> // 비밀번호 잠금 아이콘
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="w-full max-w-xl md:w-[576px] mx-auto border-x border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-lg min-h-screen min-w-[300px]">
-                    
-                    <div className="sticky top-[57px] z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                        <div className="flex justify-around text-center">
-                            {VIEW_OPTIONS.map((view) => (
-                                <button
-                                    key={view.id}
-                                    onClick={() => {
-                                        setActiveView(view.id);
-                                        setSelectedPostIdForThread(null);
-                                        if (view.id === 'notifications' && currentUserId) {
-                                            const now = new Date().getTime();
-                                            localStorage.setItem(`${LAST_CHECKED_NOTIFICATIONS_KEY}_${currentUserId}`, now);
-                                            setLastCheckedNotifications(new Date(now));
-                                        }
-                                    }}
-                                    className={`py-3 flex-1 text-sm font-semibold transition relative
-                                        ${activeView === view.id 
-                                            ? 'text-blue-500 dark:text-blue-400' 
-                                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                                        }
-                                        ${!currentUserId && view.id !== 'timeline' ? 'opacity-50 cursor-not-allowed' : ''}
-                                    `}
-                                    disabled={!currentUserId && view.id !== 'timeline'}
-                                >
-                                    {view.name}
-                                    {view.id === 'notifications' && unreadMentionCount > 0 && (
-                                        <span className="absolute top-2 right-1/4 w-2 h-2 bg-red-500 rounded-full"></span>
-                                    )}
-                                    {activeView === view.id && (
-                                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-1 w-1/3 bg-blue-500 rounded-full"></div>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {(activeView === 'timeline' && !selectedPostIdForThread) && (
-                        <div className="border-b border-gray-200 dark:border-gray-700">
-                            <ReplyForm 
-                                parentId={null} 
-                                onReply={handlePost} 
-                                isMainPost={true} 
-                                currentUserProfile={currentUserProfile}
-                                currentUserId={currentUserId}
-                            />
-                        </div>
-                    )}
-
-                    <main>
-                        {selectedPostIdForThread ? (
-                            <div>
-                                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-4">
-                                    <button 
-                                        onClick={handleThreadBackClick}
-                                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                                    >
-                                        {typeof ArrowLeft === 'string' ? <span className="text-xl">{ArrowLeft}</span> : <ArrowLeft size={20} />}
-                                    </button>
-                                    <h2 className="text-lg font-bold">스레드</h2>
-                                </div>
-                                {threadData ? (
-                                    <div>
-                                        {threadData.parentPosts.map((post, index) => (
-                                            <PostItem
-                                                key={post.id}
-                                                {...allPostProps}
-                                                post={post}
-                                                isThreadView={true}
-                                                drawTopLine={index > 0}
-                                                drawBottomLine={true}
-                                            />
-                                        ))}
-
-                                        <PostItem
-                                            key={threadData.selectedPost.id}
-                                            {...allPostProps}
-                                            post={threadData.selectedPost}
-                                            isThreadView={true}
-                                            isMainFocus={true} 
-                                            drawTopLine={threadData.parentPosts.length > 0}
-                                            drawBottomLine={threadData.replies.length > 0}
-                                        />
-                                        
-                                        <div className="border-b border-gray-200 dark:border-gray-700">
-                                        <ReplyForm 
-                                            parentId={threadData.selectedPost.id} 
-                                            onReply={handlePost} 
-                                            isMainPost={false} 
-                                            currentUserProfile={currentUserProfile}
-                                            currentUserId={currentUserId}
-                                            parentAuthorHandle={threadData.selectedPost.authorHandle}
-                                        />
-                                        </div>
-
-                                        {threadData.replies.map((reply, index) => (
-                                            <ExpandableReply
-                                                key={reply.id}
-                                                reply={reply}
-                                                index={index}
-                                                replies={threadData.replies}
-                                                allPostProps={allPostProps}
-                                                posts={posts}
-                                                postsWithChildren={threadData.postsWithChildren}
-                                            />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center text-gray-500 p-8">게시물을 찾을 수 없습니다.</div>
-                                )}
-                            </div>
-                        ) : displayItems.length === 0 ? (
-                            <div className="p-10 text-center text-gray-500 dark:text-gray-400">
-                                {currentViewData.emptyMessage}
-                            </div>
-                        // [!!!] 여기가 '나뭇가지' 뷰를 렌더링하는 핵심 부분입니다. (수정됨)
-                        ) : activeView === 'timeline' ? (
-                                displayItems.map(item => {
-                                    if (item.type === 'root_only') {
-                                        return <PostItem key={item.id} {...allPostProps} post={item.rootPost} />;
-                                    }
-                                    
-                                    if (item.type === 'retweet') {
-                                        return <PostItem key={item.id} {...allPostProps} post={item.activity} />;
-                                    }
-
-                                    // [원본 글] → [댓글] 구조로 렌더링
-                                    if (item.type === 'single_reply') {
-                                        return (
-                                            <div 
-                                                key={item.id} 
-                                                className="border-b border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-900/50"
-                                                onClick={() => handleThreadSelect(item.reply.id)}
-                                            >
-                                                <PostItem 
-                                                    {...allPostProps} 
-                                                    post={item.rootPost} 
-                                                    isPreview={true}
-                                                    drawBottomLine={true}
-                                                />
-                                                <PostItem 
-                                                    {...allPostProps} 
-                                                    post={item.reply} 
-                                                    isPreview={true}
-                                                    isTimelinePreview={true}
-                                                    drawTopLine={true}
-                                                    drawBottomLine={false}
-                                                />
-                                            </div>
-                                        );
-                                    }
-
-                                    // [원본 글] → [부모 댓글] → [최신 대댓글] 구조로 렌더링
-                                    if (item.type === 'branch') {
-                                        return (
-                                            <div 
-                                                key={item.id} 
-                                                className="border-b border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-900/50"
-                                                onClick={() => handleThreadSelect(item.latestReply.id)}
-                                            >
-                                                <PostItem 
-                                                    {...allPostProps} 
-                                                    post={item.rootPost} 
-                                                    isTimelineParent={true}
-                                                    isPreview={true}
-                                                    drawBottomLine={true}
-                                                />
-                                                <PostItem 
-                                                    {...allPostProps} 
-                                                    post={item.parentReply} 
-                                                    isTimelinePreview={true}
-                                                    isPreview={true}
-                                                    drawTopLine={true}
-                                                    drawBottomLine={true}
-                                                />
-                                                <PostItem 
-                                                    {...allPostProps} 
-                                                    post={item.latestReply} 
-                                                    isTimelinePreview={true}
-                                                    isPreview={true}
-                                                    drawTopLine={true}
-                                                    drawBottomLine={false}
-                                                />
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                })
-                        ) : (
-                            displayItems.map(post => (
-                                <PostItem 
-                                    key={post.id} 
-                                    {...allPostProps}
-                                    post={post}
-                                />
-                            ))
-                        )}
-                    </main>
-                </div>
-                
-                <DeleteConfirmationModal
-                    post={postToDelete}
-                    onConfirm={confirmDelete}
-                    onCancel={cancelDelete}
-                />
-                
-                {isProfileModalOpen && currentUserProfile && (
-                    <ProfileEditorModal
-                        profile={currentUserProfile}
-                        onSave={handleProfileSave}
-                        currentPasswordHash={currentUserProfile.passwordHash} // [2. 프로필 비밀번호]
-                        onCancel={() => setIsProfileModalOpen(false)}
-                    />
-                )}
-                
-                {postToRetweet?.action === 'QT' && currentUserId && (
-                    <QuoteTweetModal
-                        post={postToRetweet.post}
-                        onQuoteSubmit={submitQuoteTweet}
-                        onCancel={() => setPostToRetweet(null)}
-                        currentUserProfile={currentUserProfile}
-                        currentUserId={currentUserId}
-                    />
-                )}
-
-                {replyToPost && App.currentUserId && (
-                    <ReplyModal
-                        post={replyToPost}
-                        onReply={handlePost}
-                        onCancel={handleCancelReply}
-                        currentUserProfile={currentUserProfile}
-                        currentUserId={currentUserId}
-                    />
-                )}
-                
-                {/* [2. 프로필 비밀번호] - 비밀번호 인증 모달 표시 */}
-                {isPasswordModalOpen && userToAuthenticate && (
-                    <PasswordModal
-                        user={userToAuthenticate}
-                        onConfirm={performLogin}
-                        onCancel={() => { setIsPasswordModalOpen(false); setUserToAuthenticate(null); }}
-                    />
-                )}
-            </div>
-        );
-    };
-
-
-    const container = document.getElementById('root');
-    const root = ReactDOM.createRoot(container);
-    root.render(<App />);
-</script>
-
+        startApp();
+    </script>
 </body>
 </html>
+
