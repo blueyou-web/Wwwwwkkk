@@ -22,7 +22,7 @@
         }
 
         #dialogue-container-wrapper {
-            position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: center; padding: 2rem; pointer-events: none;
+            position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: center; padding: 2rem; pointer-events: none; z-index: 30;
         }
         
         #dialogue-layout-container { pointer-events: auto; }
@@ -73,6 +73,7 @@
             justify-content: center;
             align-items: center;
             filter: drop-shadow(0 1px 5px rgba(0, 0, 0, 0.6));
+            z-index: 20;
         }
         .hotspot:hover { background-color: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 1); animation: none; }
 
@@ -187,9 +188,16 @@
             aspect-ratio: 1 / 1;
         }
         .hotspot-preview.selected { border: 2px solid #a7b5e8; background-color: rgba(47, 71, 150, 0.4); }
-        .resize-handle { position: absolute; width: 10px; height: 10px; background-color: #a7b5e8; border: 1px solid #fff; opacity: 0; transition: opacity 0.2s; }
-        .hotspot-preview.selected .resize-handle { opacity: 1; }
+        .resize-handle { position: absolute; width: 10px; height: 10px; background-color: #a7b5e8; border: 1px solid #fff; opacity: 0; transition: opacity 0.2s; z-index: 10; }
+        .hotspot-preview.selected .resize-handle, .standing-preview.selected .resize-handle { opacity: 1; }
         .resize-handle.br { bottom: -5px; right: -5px; cursor: se-resize; }
+        
+        .standing-preview { position: absolute; box-sizing: border-box; cursor: move; border: 2px dashed rgba(236, 72, 153, 0.6); }
+        .standing-preview img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+        .standing-preview.selected { border-style: solid; border-color: rgba(236, 72, 153, 1); background-color: rgba(236, 72, 153, 0.1); }
+        .standing-image { position: absolute; height: auto; -webkit-user-drag: none; user-select: none; }
+
+
         #scene-script-editor { white-space: pre-wrap; word-wrap: break-word; }
         #syntax-modal pre { white-space: pre-wrap; word-break: break-all; }
 
@@ -370,7 +378,9 @@
         <div id="app" class="w-full h-full absolute inset-0 bg-transparent overflow-hidden hidden">
             <div id="game-container" class="w-full h-full relative">
                 <div id="game-screen" class="w-full h-full bg-cover bg-center transition-all duration-500"></div>
+                <div id="standing-images-container" class="absolute inset-0 w-full h-full pointer-events-none z-10"></div>
                 <div id="hotspot-previews-container"></div>
+                <div id="standing-previews-container"></div>
                 
                 <button id="exit-hotspot-btn" title="조사 종료" class="hidden">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -421,14 +431,15 @@
                      <button id="syntax-help-btn" class="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded">문법 도움말</button>
                 </div>
                 <textarea id="scene-script-editor" class="w-full bg-gray-700 p-2 rounded h-64 text-sm leading-relaxed" placeholder="이곳에 장면의 스토리를 작성하세요..."></textarea>
-                <div class="grid grid-cols-2 gap-2 mt-2">
+                <div class="grid grid-cols-3 gap-2 mt-2">
                     <button id="insert-dialogue-btn" class="bg-cyan-600 hover:bg-cyan-700 p-2 rounded-md text-sm">인물</button>
+                    <button id="insert-standing-btn" class="bg-rose-600 hover:bg-rose-700 p-2 rounded-md text-sm">스탠딩</button>
                     <button id="insert-choice-btn" class="bg-purple-600 hover:bg-purple-700 p-2 rounded-md text-sm">선택지</button>
                     <button id="insert-hotspot-btn" class="bg-orange-600 hover:bg-orange-700 p-2 rounded-md text-sm">조사</button>
                     <button id="insert-location-btn" class="bg-teal-600 hover:bg-teal-700 p-2 rounded-md text-sm">장소</button>
                     <button id="insert-event-btn" class="bg-pink-600 hover:bg-pink-700 p-2 rounded-md text-sm">이벤트</button>
                     <button id="insert-label-btn" class="bg-indigo-600 hover:bg-indigo-700 p-2 rounded-md text-sm">레이블</button>
-                    <button id="insert-goto-btn" class="bg-yellow-600 hover:bg-yellow-700 p-2 rounded-md text-sm col-span-2">강제 이동</button>
+                    <button id="insert-goto-btn" class="bg-yellow-600 hover:bg-yellow-700 p-2 rounded-md text-sm col-span-3">강제 이동</button>
                 </div>
             </div>
             <div>
@@ -483,7 +494,7 @@
     <div id="input-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50"><div class="modal-content-bg rounded-lg p-6 shadow-xl w-full max-w-sm"><p id="input-text" class="mb-4 text-lg text-center"></p><input type="text" id="input-field" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mb-4"><div class="flex justify-center space-x-4"><button id="input-ok-btn" class="modal-button hover:opacity-80 px-6 py-2 rounded-md">확인</button><button id="input-cancel-btn" class="modal-button-secondary hover:opacity-80 px-6 py-2 rounded-md">취소</button></div></div></div>
     <div id="syntax-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div id="syntax-modal-content" class="bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-2xl text-left relative max-h-full overflow-y-auto"><h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">스크립트 문법 도움말</h3><button id="syntax-close-btn" class="absolute top-6 right-6 text-gray-400 hover:text-white text-3xl leading-none">&times;</button><div class="space-y-6 text-gray-300 mt-4"><div><h4 class="font-bold text-lg text-teal-400">장소 / 이벤트</h4><p class="text-sm mt-1">장면 시작 시 장소 이름이나 이벤트 텍스트를 팝업으로 표시합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[장소: 장소 이름]\n[EVENT: 이벤트 발생!]</code></pre></div>
     <div><h4 class="font-bold text-lg text-yellow-400">강제 이동</h4><p class="text-sm mt-1">해당 라인을 읽는 즉시 다른 장면으로 강제 이동시킵니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[GOTO: 이동할_장면ID]</code></pre></div>
-    <div><h4 class="font-bold text-lg text-indigo-400">레이블</h4><p class="text-sm mt-1">스크립트 내 특정 위치로 점프할 수 있는 책갈피를 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[LABEL: 레이블_이름]\n...\n> 선택지 {GOTO: 장면ID@레이블_이름}</code></pre></div><div><h4 class="font-bold text-lg text-cyan-400">인물 및 대사</h4><p class="text-sm mt-1">화자를 지정하고 대사를 출력합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[인물: 캐릭터 이름]\n대사 내용입니다.</code></pre></div><div><h4 class="font-bold text-lg text-purple-400">선택지</h4><p class="text-sm mt-1">플레이어에게 선택지를 제공합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[선택지]\n> 선택지 1 {GOTO: 장면ID}\n> 선택지 2 {SHOW: 텍스트1 / 텍스트2}</code></pre></div><div><h4 class="font-bold text-lg text-orange-400">조사 지점 (핫스팟)</h4><p class="text-sm mt-1">화면에 클릭 가능한 영역을 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[조사지점]\n@ 이름 {X:10, Y:10, W:20, H:20, SHOW: 텍스트1 / 텍스트2}</code></pre></div></div></div></div>
+    <div><h4 class="font-bold text-lg text-indigo-400">레이블</h4><p class="text-sm mt-1">스크립트 내 특정 위치로 점프할 수 있는 책갈피를 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[LABEL: 레이블_이름]\n...\n> 선택지 {GOTO: 장면ID@레이블_이름}</code></pre></div><div><h4 class="font-bold text-lg text-cyan-400">인물 및 대사</h4><p class="text-sm mt-1">화자를 지정하고 대사를 출력합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[인물: 캐릭터 이름]\n대사 내용입니다.</code></pre></div><div><h4 class="font-bold text-lg text-purple-400">선택지</h4><p class="text-sm mt-1">플레이어에게 선택지를 제공합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[선택지]\n> 선택지 1 {GOTO: 장면ID}\n> 선택지 2 {SHOW: 텍스트1 / 텍스트2}</code></pre></div><div><h4 class="font-bold text-lg text-orange-400">조사 지점 (핫스팟)</h4><p class="text-sm mt-1">화면에 클릭 가능한 영역을 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[조사지점]\n@ 이름 {X:10, Y:10, W:20, H:20, SHOW: 텍스트1 / 텍스트2}</code></pre></div><div><h4 class="font-bold text-lg text-rose-400">캐릭터 스탠딩</h4><p class="text-sm mt-1">화면에 캐릭터 이미지를 표시하거나 제거합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[스탠딩: 캐릭터이름 {URL: '이미지주소', X:50, Y:50, W:20}]\n[스탠딩해제: 캐릭터이름]\n[스탠딩해제]</code></pre></div></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -509,6 +520,8 @@
             const gameContainer = document.getElementById('game-container');
             const gameScreen = document.getElementById('game-screen');
             const hotspotPreviewsContainer = document.getElementById('hotspot-previews-container');
+            const standingPreviewsContainer = document.getElementById('standing-previews-container');
+            const standingImagesContainer = document.getElementById('standing-images-container');
             const characterName = document.getElementById('character-name');
             const dialogueText = document.getElementById('dialogue-text');
             const choicesBox = document.getElementById('choices-box');
@@ -537,6 +550,7 @@
             const insertDialogueBtn = document.getElementById('insert-dialogue-btn');
             const insertChoiceBtn = document.getElementById('insert-choice-btn');
             const insertHotspotBtn = document.getElementById('insert-hotspot-btn');
+            const insertStandingBtn = document.getElementById('insert-standing-btn');
             const insertLocationBtn = document.getElementById('insert-location-btn');
             const insertLabelBtn = document.getElementById('insert-label-btn');
             const insertEventBtn = document.getElementById('insert-event-btn');
@@ -573,11 +587,18 @@
                     const choiceMatch = trimmedLine.match(/^>\s*(.*?)\s*\{(GOTO|SHOW):\s*(.*?)\s*\}$/);
                     const hotspotMatch = trimmedLine.match(/^@\s*(.*?)\s*\{X:\s*([\d.]+)\s*,\s*Y:\s*([\d.]+)\s*,\s*W:\s*([\d.]+)\s*,\s*H:\s*([\d.]+)\s*,\s*(GOTO|SHOW):\s*(.*?)\s*\}$/);
                     const gotoMatch = trimmedLine.match(/^\[GOTO:\s*(.*?)\]$/);
+                    const standingMatch = trimmedLine.match(/^\[스탠딩:\s*(.*?)\s*\{URL:\s*'(.*?)'\s*,\s*X:\s*([\d.]+)\s*,\s*Y:\s*([\d.]+)\s*,\s*W:\s*([\d.]+)\s*\}\]$/);
+                    const clearStandingMatch = trimmedLine.match(/^\[스탠딩해제:\s*(.*?)\]$/);
+                    const clearAllStandingsMatch = trimmedLine.match(/^\[스탠딩해제\]$/);
+
 
                     if (locationMatch) { items.push({ type: 'location', name: locationMatch[1] }); currentItem = null; }
                     else if (eventMatch) { items.push({ type: 'event', text: eventMatch[1] }); currentItem = null; }
                     else if (gotoMatch) { items.push({ type: 'goto', target: gotoMatch[1].trim() }); currentItem = null; }
                     else if (labelMatch) { items.push({ type: 'label', name: labelMatch[1] }); currentItem = null; }
+                    else if (standingMatch) { items.push({ type: 'standing', name: standingMatch[1].trim(), url: standingMatch[2], x: parseFloat(standingMatch[3]), y: parseFloat(standingMatch[4]), width: parseFloat(standingMatch[5]), lineIndex: i }); currentItem = null; }
+                    else if (clearStandingMatch) { items.push({ type: 'clear_standing', name: clearStandingMatch[1].trim() }); currentItem = null; }
+                    else if (clearAllStandingsMatch) { items.push({ type: 'clear_all_standings' }); currentItem = null; }
                     else if (charMatch) { currentCharacter = charMatch[1]; currentItem = null; } 
                     else if (trimmedLine === '[선택지]') { currentItem = { type: 'choice', choices: [] }; items.push(currentItem); }
                     else if (trimmedLine === '[조사지점]') { currentItem = { type: 'hotspot', hotspots: [] }; items.push(currentItem); }
@@ -628,7 +649,6 @@
             
             function typeWriterEffect(text, element, callback) { clearTimeout(typingTimeout); element.textContent = ''; let i = 0; function type() { if (i < text.length) { element.textContent += text.charAt(i); i++; typingTimeout = setTimeout(type, 30); } else if (callback) { callback(); } } type(); };
             
-            // [!!] 신규: 순차적 텍스트 출력 함수
             function showSequentialText(textTarget, onComplete) {
                 isShowingSequentialText = true;
                 const textParts = textTarget.split('/').map(t => t.trim());
@@ -765,16 +785,15 @@
 
                 let item = sceneItems[currentItemIndex];
 
-                while(item && (item.type === 'location' || item.type === 'label' || item.type === 'event' || item.type === 'goto')) {
-                    if (item.type === 'event') {
-                        await showEventPopup(item.text);
-                    }
-                    if (item.type === 'goto') {
-                        await renderScene(item.target);
-                        return;
-                    }
+                while(item && (item.type === 'location' || item.type === 'label' || item.type === 'event' || item.type === 'goto' || item.type === 'standing' || item.type === 'clear_standing' || item.type === 'clear_all_standings')) {
+                    if (item.type === 'event') { await showEventPopup(item.text); }
+                    if (item.type === 'goto') { await renderScene(item.target); return; }
+                    if (item.type === 'standing') { renderStanding(item); }
+                    if (item.type === 'clear_standing') { document.querySelector(`.standing-image[data-name="${item.name}"]`)?.remove(); }
+                    if (item.type === 'clear_all_standings') { standingImagesContainer.innerHTML = ''; }
+                    
                     currentItemIndex++;
-                     if (currentItemIndex >= sceneItems.length) {
+                    if (currentItemIndex >= sceneItems.length) {
                         dialogueContentBox.style.display = 'none';
                         return;
                     }
@@ -799,8 +818,24 @@
                         break;
                 }
             }
+
+            function renderStanding(item) {
+                // Remove existing standing for the same character name
+                document.querySelector(`.standing-image[data-name="${item.name}"]`)?.remove();
+
+                const img = document.createElement('img');
+                img.src = item.url;
+                img.className = 'standing-image';
+                img.dataset.name = item.name;
+                img.style.left = `${item.x}%`;
+                img.style.top = `${item.y}%`;
+                img.style.width = `${item.width}%`;
+                standingImagesContainer.appendChild(img);
+            }
+
             async function renderScene(sceneTarget) {
                 exitHotspotBtn.classList.add('hidden');
+                standingImagesContainer.innerHTML = ''; // Clear standings on new scene
 
                 const [sceneId, labelName] = sceneTarget.split('@');
                 const scene = storyData[sceneId];
@@ -812,6 +847,7 @@
                     return;
                 }
                 currentSceneId = sceneId;
+                if (isAdminMode) updateAdminPanel();
                 gameScreen.style.backgroundImage = `url(${scene.backgroundImage || ''})`;
                 sceneItems = parseScript(scene.script || '');
                 currentItemIndex = 0;
@@ -922,51 +958,180 @@
                         toggleAdminPanel();
                     }
                     adminPanelToggle.classList.add('hidden');
-                    hotspotPreviewsContainer.innerHTML = ''; 
+                    hotspotPreviewsContainer.innerHTML = '';
+                    standingPreviewsContainer.innerHTML = '';
                 } 
             }
 
-            function updateAdminPanel() { if (!isAdminMode) return; sceneIdSelect.innerHTML = Object.keys(storyData).map(id => `<option value="${id}">${id}</option>`).join(''); sceneIdSelect.value = currentSceneId; const scene = storyData[currentSceneId]; if (!scene) return; bgImageInput.value = scene.backgroundImage || ''; sceneScriptEditor.value = scene.script || ''; hotspotPreviewsContainer.innerHTML = ''; parseScript(scene.script || '').forEach(item => { if (item.type === 'hotspot') { (item.hotspots || []).forEach(hotspot => renderHotspotPreview(hotspot)); } }); handleEditorCursorChange(); }
-            function renderHotspotPreview(hotspot) { const preview = document.createElement('div'); preview.className = 'hotspot-preview'; preview.dataset.lineIndex = hotspot.lineIndex; preview.style.left = `${hotspot.x}%`; preview.style.top = `${hotspot.y}%`; preview.style.width = `${hotspot.width}%`; const handle = document.createElement('div'); handle.className = 'resize-handle br'; preview.appendChild(handle); preview.addEventListener('click', (e) => { e.stopPropagation(); const lineIdx = parseInt(e.currentTarget.dataset.lineIndex); if(isNaN(lineIdx)) return; const scriptText = sceneScriptEditor.value; const lines = scriptText.split('\n'); let charIndex = 0; for (let i = 0; i < lines.length; i++) { if (i === lineIdx) { sceneScriptEditor.focus(); sceneScriptEditor.selectionStart = charIndex; sceneScriptEditor.selectionEnd = charIndex + lines[i].length; handleEditorCursorChange(); break; } charIndex += lines[i].length + 1; } }); makeDraggableAndResizable(preview); hotspotPreviewsContainer.appendChild(preview); }
-            function makeDraggableAndResizable(element) { let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0; let containerRect; const dragMouseDown = (e) => { if (e.target.closest('.resize-handle')) return; e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY; isInteractingWithHotspot = true; containerRect = gameContainer.getBoundingClientRect(); document.onmouseup = closeDragElement; document.onmousemove = elementDrag; }; const elementDrag = (e) => { e.preventDefault(); pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY; pos3 = e.clientX; pos4 = e.clientY; let newTop = (element.offsetTop - pos2) / containerRect.height * 100; let newLeft = (element.offsetLeft - pos1) / containerRect.width * 100; const elWidth = parseFloat(element.style.width); newLeft = Math.max(0, Math.min(newLeft, 100 - elWidth)); newTop = Math.max(0, Math.min(newTop, 100 - elWidth * (containerRect.width/containerRect.height) )); element.style.top = `${newTop}%`; element.style.left = `${newLeft}%`; updateScriptFromPreview(element); }; const resizeMouseDown = (e) => { e.preventDefault(); e.stopPropagation(); pos3 = e.clientX; pos4 = e.clientY; isInteractingWithHotspot = true; containerRect = gameContainer.getBoundingClientRect(); document.onmouseup = closeDragElement; document.onmousemove = elementResize; }; const elementResize = (e) => { e.preventDefault(); const dx = e.clientX - pos3; let newWidth = (element.offsetWidth + dx) / containerRect.width * 100; pos3 = e.clientX; const elLeft = parseFloat(element.style.left); newWidth = Math.max(5, Math.min(newWidth, 100 - elLeft)); element.style.width = `${newWidth}%`; updateScriptFromPreview(element); }; const closeDragElement = () => { isInteractingWithHotspot = false; document.onmouseup = null; document.onmousemove = null; }; element.querySelector('.resize-handle.br').onmousedown = resizeMouseDown; element.onmousedown = dragMouseDown; }
-               function updateScriptFromPreview(element) {
+            function updateAdminPanel() {
+                if (!isAdminMode) return;
+                sceneIdSelect.innerHTML = Object.keys(storyData).map(id => `<option value="${id}">${id}</option>`).join('');
+                sceneIdSelect.value = currentSceneId;
+                const scene = storyData[currentSceneId];
+                if (!scene) return;
+                bgImageInput.value = scene.backgroundImage || '';
+                sceneScriptEditor.value = scene.script || '';
+                hotspotPreviewsContainer.innerHTML = '';
+                standingPreviewsContainer.innerHTML = '';
+                parseScript(scene.script || '').forEach(item => {
+                    if (item.type === 'hotspot') {
+                        (item.hotspots || []).forEach(hotspot => renderHotspotPreview(hotspot));
+                    }
+                    if (item.type === 'standing') {
+                        renderStandingPreview(item);
+                    }
+                });
+                handleEditorCursorChange();
+            }
+
+            function renderHotspotPreview(hotspot) { const preview = document.createElement('div'); preview.className = 'hotspot-preview'; preview.dataset.lineIndex = hotspot.lineIndex; preview.style.left = `${hotspot.x}%`; preview.style.top = `${hotspot.y}%`; preview.style.width = `${hotspot.width}%`; const handle = document.createElement('div'); handle.className = 'resize-handle br'; preview.appendChild(handle); preview.addEventListener('click', (e) => { e.stopPropagation(); const lineIdx = parseInt(e.currentTarget.dataset.lineIndex); if(isNaN(lineIdx)) return; const scriptText = sceneScriptEditor.value; const lines = scriptText.split('\n'); let charIndex = 0; for (let i = 0; i < lines.length; i++) { if (i === lineIdx) { sceneScriptEditor.focus(); sceneScriptEditor.selectionStart = charIndex; sceneScriptEditor.selectionEnd = charIndex + lines[i].length; handleEditorCursorChange(); break; } charIndex += lines[i].length + 1; } }); makeDraggableAndResizable(preview, 'hotspot'); hotspotPreviewsContainer.appendChild(preview); }
+            
+            function renderStandingPreview(standing) {
+                const preview = document.createElement('div');
+                preview.className = 'standing-preview';
+                preview.dataset.lineIndex = standing.lineIndex;
+                preview.style.left = `${standing.x}%`;
+                preview.style.top = `${standing.y}%`;
+                preview.style.width = `${standing.width}%`;
+                
+                const img = document.createElement('img');
+                img.src = standing.url;
+                preview.appendChild(img);
+
+                const handle = document.createElement('div');
+                handle.className = 'resize-handle br';
+                preview.appendChild(handle);
+                
+                preview.addEventListener('click', (e) => { e.stopPropagation(); const lineIdx = parseInt(e.currentTarget.dataset.lineIndex); if(isNaN(lineIdx)) return; const scriptText = sceneScriptEditor.value; const lines = scriptText.split('\n'); let charIndex = 0; for (let i = 0; i < lines.length; i++) { if (i === lineIdx) { sceneScriptEditor.focus(); sceneScriptEditor.selectionStart = charIndex; sceneScriptEditor.selectionEnd = charIndex + lines[i].length; handleEditorCursorChange(); break; } charIndex += lines[i].length + 1; } });
+                
+                makeDraggableAndResizable(preview, 'standing');
+                standingPreviewsContainer.appendChild(preview);
+            }
+
+            function makeDraggableAndResizable(element, type) {
+                 let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+                let containerRect;
+
+                const dragMouseDown = (e) => {
+                    if (e.target.closest('.resize-handle')) return;
+                    e.preventDefault();
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    isInteractingWithHotspot = true;
+                    containerRect = gameContainer.getBoundingClientRect();
+                    document.onmouseup = closeDragElement;
+                    document.onmousemove = elementDrag;
+                };
+
+                const elementDrag = (e) => {
+                    e.preventDefault();
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    let newTop = (element.offsetTop - pos2) / containerRect.height * 100;
+                    let newLeft = (element.offsetLeft - pos1) / containerRect.width * 100;
+                    const elWidth = parseFloat(element.style.width);
+                    
+                    newLeft = Math.max(0, Math.min(newLeft, 100 - elWidth));
+
+                    if (type === 'hotspot') {
+                         newTop = Math.max(0, Math.min(newTop, 100 - elWidth * (containerRect.width/containerRect.height) ));
+                    } else {
+                         const elHeight = (element.offsetHeight / containerRect.height) * 100;
+                         newTop = Math.max(0, Math.min(newTop, 100 - elHeight));
+                    }
+                   
+                    element.style.top = `${newTop}%`;
+                    element.style.left = `${newLeft}%`;
+                    updateScriptFromPreview(element, type);
+                };
+
+                const resizeMouseDown = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    isInteractingWithHotspot = true;
+                    containerRect = gameContainer.getBoundingClientRect();
+                    document.onmouseup = closeDragElement;
+                    document.onmousemove = elementResize;
+                };
+
+                const elementResize = (e) => {
+                    e.preventDefault();
+                    const dx = e.clientX - pos3;
+                    let newWidth = (element.offsetWidth + dx) / containerRect.width * 100;
+                    pos3 = e.clientX;
+                    const elLeft = parseFloat(element.style.left);
+                    newWidth = Math.max(5, Math.min(newWidth, 100 - elLeft));
+                    element.style.width = `${newWidth}%`;
+                    if (type === 'standing') {
+                        element.style.height = 'auto';
+                    }
+                    updateScriptFromPreview(element, type);
+                };
+
+                const closeDragElement = () => {
+                    isInteractingWithHotspot = false;
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                };
+
+                element.querySelector('.resize-handle.br').onmousedown = resizeMouseDown;
+                element.onmousedown = dragMouseDown;
+            }
+
+               function updateScriptFromPreview(element, type) {
                 const lineIndexToUpdate = parseInt(element.dataset.lineIndex);
                 if (isNaN(lineIndexToUpdate)) return;
 
                 const newX = parseFloat(element.style.left).toFixed(2);
                 const newY = parseFloat(element.style.top).toFixed(2);
                 const newW = parseFloat(element.style.width).toFixed(2);
-                const containerRect = gameContainer.getBoundingClientRect();
-                const newH = (newW * (containerRect.width / containerRect.height)).toFixed(2);
-
+                
                 const scriptLines = sceneScriptEditor.value.split('\n');
                 const lineToUpdate = scriptLines[lineIndexToUpdate];
-                
                 if (!lineToUpdate) return;
                 
-                const parseRegex = /^@\s*(.*?)\s*\{X:\s*[\d.]+\s*,\s*Y:\s*[\d.]+\s*,\s*W:\s*[\d.]+\s*,\s*H:\s*[\d.]+\s*,\s*(GOTO|SHOW):\s*(.*?)\s*\}$/;
-                const match = lineToUpdate.trim().match(parseRegex);
-
-                if (match) {
-                    const name = match[1];
-                    const type = match[2];
-                    const target = match[3];
-                    
-                    const newLine = `@ ${name} {X: ${newX}, Y: ${newY}, W: ${newW}, H: ${newH}, ${type.toUpperCase()}: ${target}}`;
-                    
-                    scriptLines[lineIndexToUpdate] = newLine;
-                    const newScript = scriptLines.join('\n');
-                    
-                    if (sceneScriptEditor.value !== newScript) {
-                        const cursorPosStart = sceneScriptEditor.selectionStart;
-                        sceneScriptEditor.value = newScript;
-                        sceneScriptEditor.setSelectionRange(cursorPosStart, cursorPosStart);
-                        
-                        sceneScriptEditor.dispatchEvent(new Event('input', { bubbles:true, cancelable:true }));
+                let newLine = '';
+                if (type === 'hotspot') {
+                    const containerRect = gameContainer.getBoundingClientRect();
+                    const newH = (newW * (containerRect.width / containerRect.height)).toFixed(2);
+                    const parseRegex = /^@\s*(.*?)\s*\{X:\s*[\d.]+\s*,\s*Y:\s*[\d.]+\s*,\s*W:\s*[\d.]+\s*,\s*H:\s*[\d.]+\s*,\s*(GOTO|SHOW):\s*(.*?)\s*\}$/;
+                    const match = lineToUpdate.trim().match(parseRegex);
+                    if (match) {
+                        newLine = `@ ${match[1]} {X: ${newX}, Y: ${newY}, W: ${newW}, H: ${newH}, ${match[6].toUpperCase()}: ${match[7]}}`;
+                    }
+                } else if (type === 'standing') {
+                    const parseRegex = /^\[스탠딩:\s*(.*?)\s*\{URL:\s*'(.*?)'\s*,\s*X:\s*[\d.]+\s*,\s*Y:\s*[\d.]+\s*,\s*W:\s*[\d.]+\s*\}\]$/;
+                    const match = lineToUpdate.trim().match(parseRegex);
+                    if (match) {
+                        newLine = `[스탠딩: ${match[1]} {URL: '${match[2]}', X: ${newX}, Y: ${newY}, W: ${newW}}]`;
                     }
                 }
+
+                if (newLine && scriptLines[lineIndexToUpdate] !== newLine) {
+                    scriptLines[lineIndexToUpdate] = newLine;
+                    const newScript = scriptLines.join('\n');
+                    const cursorPosStart = sceneScriptEditor.selectionStart;
+                    sceneScriptEditor.value = newScript;
+                    sceneScriptEditor.setSelectionRange(cursorPosStart, cursorPosStart);
+                    sceneScriptEditor.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                }
             }
-            function handleEditorCursorChange() { const cursorPos = sceneScriptEditor.selectionStart; const textUpToCursor = sceneScriptEditor.value.substring(0, cursorPos); const lineStart = textUpToCursor.lastIndexOf('\n') + 1; const lineEnd = sceneScriptEditor.value.indexOf('\n', lineStart); const currentLine = sceneScriptEditor.value.substring(lineStart, lineEnd === -1 ? undefined : lineEnd); const scriptLines = sceneScriptEditor.value.split('\n'); const currentLineIndex = textUpToCursor.split('\n').length - 1; const hotspotMatch = currentLine.match(/^@\s*(.*?)\s*\{/); document.querySelectorAll('.hotspot-preview').forEach(p => p.classList.remove('selected')); if (hotspotMatch) { const preview = document.querySelector(`.hotspot-preview[data-line-index="${currentLineIndex}"]`); if (preview) { preview.classList.add('selected'); } } }
+            function handleEditorCursorChange() { 
+                const cursorPos = sceneScriptEditor.selectionStart; 
+                const textUpToCursor = sceneScriptEditor.value.substring(0, cursorPos); 
+                const currentLineIndex = textUpToCursor.split('\n').length - 1;
+                
+                document.querySelectorAll('.hotspot-preview, .standing-preview').forEach(p => p.classList.remove('selected'));
+                
+                const preview = document.querySelector(`.hotspot-preview[data-line-index="${currentLineIndex}"], .standing-preview[data-line-index="${currentLineIndex}"]`);
+                if (preview) {
+                    preview.classList.add('selected');
+                }
+            }
             function insertAtCursor(textarea, textToInsert) { const start = textarea.selectionStart; const end = textarea.selectionEnd; const text = textarea.value; textarea.value = text.substring(0, start) + textToInsert + text.substring(end); textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length; textarea.focus(); textarea.dispatchEvent(new Event('input', { bubbles:true, cancelable:true })); }
 
             function updateSaveSlotsUI() {
@@ -1119,9 +1284,9 @@
                 });
                 
                 createNewStoryBtn.addEventListener('click', createNewStory);
-                sceneIdSelect.addEventListener('change', () => { renderScene(sceneIdSelect.value); updateAdminPanel(); });
-                addSceneBtn.addEventListener('click', async () => { const newSceneId = await showInput("새 장면의 ID를 입력하세요:", `scene_${Object.keys(storyData).length + 1}`); if (newSceneId && !storyData[newSceneId]) { storyData[newSceneId] = { backgroundImage: '', script: `[인물: 나레이션]\n새로운 장면입니다.` }; renderScene(newSceneId); updateAdminPanel(); } else if (newSceneId) { showMessage("이미 존재하는 장면 ID이거나 입력이 취소되었습니다."); } });
-                deleteSceneBtn.addEventListener('click', async () => { if (Object.keys(storyData).length <= 1) { showMessage("마지막 남은 장면은 삭제할 수 없습니다."); return; } if (await showConfirm(`정말로 '${currentSceneId}' 장면을 삭제하시겠습니까?`)) { delete storyData[currentSceneId]; renderScene('start'); updateAdminPanel(); } });
+                sceneIdSelect.addEventListener('change', () => { renderScene(sceneIdSelect.value); });
+                addSceneBtn.addEventListener('click', async () => { const newSceneId = await showInput("새 장면의 ID를 입력하세요:", `scene_${Object.keys(storyData).length + 1}`); if (newSceneId && !storyData[newSceneId]) { storyData[newSceneId] = { backgroundImage: '', script: `[인물: 나레이션]\n새로운 장면입니다.` }; renderScene(newSceneId); } else if (newSceneId) { showMessage("이미 존재하는 장면 ID이거나 입력이 취소되었습니다."); } });
+                deleteSceneBtn.addEventListener('click', async () => { if (Object.keys(storyData).length <= 1) { showMessage("마지막 남은 장면은 삭제할 수 없습니다."); return; } if (await showConfirm(`정말로 '${currentSceneId}' 장면을 삭제하시겠습니까?`)) { delete storyData[currentSceneId]; renderScene('start'); } });
                 bgImageInput.addEventListener('input', () => { const scene = storyData[currentSceneId]; if (scene) scene.backgroundImage = bgImageInput.value; gameScreen.style.backgroundImage = `url(${bgImageInput.value})`; });
                 sceneScriptEditor.addEventListener('input', () => { const scene = storyData[currentSceneId]; if(scene) scene.script = sceneScriptEditor.value; if (!isInteractingWithHotspot) { updateAdminPanel(); } });
                 sceneScriptEditor.addEventListener('keyup', handleEditorCursorChange);
@@ -1133,6 +1298,14 @@
                 insertChoiceBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[선택지]\n> 선택지 1 {GOTO: 장면ID@레이블ID}\n> 선택지 2 {SHOW: 출력될 텍스트}\n'));
                 insertHotspotBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[조사지점]\n@ 이름 {X: 10, Y: 10, W: 20, H: 20, SHOW: 출력될 텍스트}\n'));
                 insertGotoBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[GOTO: 장면ID]\n'));
+                insertStandingBtn.addEventListener('click', async () => {
+                    const name = await showInput("스탠딩 캐릭터 이름을 입력하세요:", "캐릭터1");
+                    if (!name) return;
+                    const url = await showInput("이미지 URL을 입력하세요:", "https://placehold.co/300x800");
+                    if (!url) return;
+                    insertAtCursor(sceneScriptEditor, `\n[스탠딩: ${name} {URL: '${url}', X: 50, Y: 50, W: 20}]\n`);
+                });
+
 
                 for (let i = 1; i <= 3; i++) {
                     document.getElementById(`save-slot-${i}`).addEventListener('click', () => handleSlotClick(i));
