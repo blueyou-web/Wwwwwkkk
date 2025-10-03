@@ -14,9 +14,10 @@
                               radial-gradient(circle at bottom left, rgba(47, 71, 150, 0.3), transparent 40%);
         }
 
+        /* [!!] 수정: 게임 화면 최대 크기 제한 */
         #root-container {
             width: 100%;
-            max-width: 90vw; 
+            max-width: min(90vw, 2560px); 
             aspect-ratio: 21 / 9;
             max-height: 95vh;
         }
@@ -35,6 +36,9 @@
             padding-left: 2rem; 
             padding-right: 2rem;
         }
+
+        /* [!!] 추가: 대화 텍스트 줄바꿈 처리 */
+        #dialogue-text { white-space: pre-wrap; }
 
         #character-name { color: #a7b5e8; font-weight: 700; text-shadow: 0 0 5px #2f4796; }
 
@@ -267,6 +271,69 @@
             color: white;
             border-color: rgba(167, 181, 232, 0.8);
         }
+
+        #save-slots-container {
+            transition: opacity 0.3s ease-in-out;
+        }
+        .save-slot {
+            position: relative;
+            width: 150px;
+            height: 50px;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 0.5rem;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+        }
+        .save-slot.filled {
+            color: white;
+            border-color: rgba(167, 181, 232, 0.8);
+        }
+        .save-slot:hover {
+            background-color: rgba(47, 71, 150, 0.7);
+            border-color: white;
+        }
+        .save-slot-title {
+            font-weight: bold;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 90%;
+            text-align: center;
+        }
+        .save-slot-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        .delete-save-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            opacity: 0.7;
+            transition: all 0.2s ease;
+        }
+        .delete-save-btn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white h-screen overflow-hidden flex items-center justify-center">
@@ -287,11 +354,16 @@
                         </svg>
                     </div>
                     <div id="lobby-main" class="flex flex-col p-4 md:p-0">
-                        <h1 class="text-4xl font-bold mb-6 text-center md:text-left text-white">챕터 선택</h1>
+                        <div class="flex justify-between items-center mb-6">
+                            <h1 class="text-4xl font-bold text-white">챕터 선택</h1>
+                            <button id="lobby-admin-toggle-btn" class="control-btn text-white p-2 rounded-full shadow-lg transition-all hover:scale-110">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
                         <div id="story-list-container" class="flex-grow overflow-y-auto pr-4">
                             <div id="story-list" class="space-y-4"></div>
                         </div>
-                        <button id="create-new-story-btn" class="w-full hover:opacity-80 p-3 mt-6 rounded-md font-bold transition-colors text-lg">새 스토리 만들기</button>
+                        <button id="create-new-story-btn" class="w-full hover:opacity-80 p-3 mt-6 rounded-md font-bold transition-colors text-lg hidden">새 스토리 만들기</button>
                     </div>
                 </div>
             </div>
@@ -323,8 +395,7 @@
         </div>
     </div>
     
-    <!-- [!!] 변경: 관리자 패널과 토글 버튼 위치 변경 및 fixed 속성 추가 -->
-    <div id="admin-panel" class="fixed top-0 bottom-0 left-0 z-40 w-full md:w-96 bg-gray-800 p-4 overflow-y-auto border-r-2 border-gray-700 transform -translate-x-full transition-transform duration-300 ease-in-out">
+    <div id="admin-panel" class="fixed top-0 bottom-0 left-0 z-50 w-full md:w-96 bg-gray-800 p-4 overflow-y-auto border-r-2 border-gray-700 transform -translate-x-full transition-transform duration-300 ease-in-out">
         <h2 class="text-2xl font-bold mb-4">어드벤처 제작 도구</h2>
         <div class="space-y-4">
             <div>
@@ -380,6 +451,12 @@
     </div>
     <div id="event-popup" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center text-white text-3xl font-bold z-50 hidden opacity-0">
         <div id="event-popup-content"></div>
+    </div>
+    
+    <div id="save-slots-container" class="fixed bottom-4 left-4 flex gap-2 z-40 opacity-0 hidden">
+        <button id="save-slot-1" data-slot="1" class="save-slot"></button>
+        <button id="save-slot-2" data-slot="2" class="save-slot"></button>
+        <button id="save-slot-3" data-slot="3" class="save-slot"></button>
     </div>
     
     <div class="fixed bottom-4 right-4 flex items-center gap-2 z-40">
@@ -472,12 +549,14 @@
             const restartSceneBtn = document.getElementById('restart-scene-btn');
             const restartStoryBtn = document.getElementById('restart-story-btn');
             const insertGotoBtn = document.getElementById('insert-goto-btn');
+            const lobbyAdminToggleBtn = document.getElementById('lobby-admin-toggle-btn');
+            const saveSlotsContainer = document.getElementById('save-slots-container');
 
             // --- UTILITIES (Modals) ---
             const { showMessage, showConfirm, showInput } = (function setupModals() { /* ... (unchanged) ... */ const messageModal = document.getElementById('message-modal'); const messageText = document.getElementById('message-text'); const messageOkBtn = document.getElementById('message-ok-btn'); const confirmModal = document.getElementById('confirm-modal'); const confirmText = document.getElementById('confirm-text'); const confirmYesBtn = document.getElementById('confirm-yes-btn'); const confirmNoBtn = document.getElementById('confirm-no-btn'); const inputModal = document.getElementById('input-modal'); const inputText = document.getElementById('input-text'); const inputField = document.getElementById('input-field'); const inputOkBtn = document.getElementById('input-ok-btn'); const inputCancelBtn = document.getElementById('input-cancel-btn'); messageOkBtn.addEventListener('click', () => messageModal.classList.add('hidden')); return { showMessage: (message) => { messageText.textContent = message; messageModal.classList.remove('hidden'); }, showConfirm: (message) => new Promise(resolve => { confirmText.textContent = message; confirmModal.classList.remove('hidden'); const yesHandler = () => { resolve(true); confirmModal.classList.add('hidden'); confirmYesBtn.removeEventListener('click', yesHandler); confirmNoBtn.removeEventListener('click', noHandler); }; const noHandler = () => { resolve(false); confirmModal.classList.add('hidden'); confirmYesBtn.removeEventListener('click', yesHandler); confirmNoBtn.removeEventListener('click', noHandler); }; confirmYesBtn.addEventListener('click', yesHandler); confirmNoBtn.addEventListener('click', noHandler); }), showInput: (message, defaultValue = '') => new Promise(resolve => { inputText.textContent = message; inputField.value = defaultValue; inputModal.classList.remove('hidden'); inputField.focus(); const okHandler = () => { resolve(inputField.value); inputModal.classList.add('hidden'); inputOkBtn.removeEventListener('click', okHandler); inputCancelBtn.removeEventListener('click', cancelHandler); }; const cancelHandler = () => { resolve(null); inputModal.classList.add('hidden'); inputOkBtn.removeEventListener('click', okHandler); inputCancelBtn.removeEventListener('click', cancelHandler); }; inputOkBtn.addEventListener('click', okHandler); inputCancelBtn.addEventListener('click', cancelHandler); }) }; })();
 
             // --- GAME STATE ---
-            let currentStoryId = null; let storyData = {}; let currentSceneId = 'start'; let currentItemIndex = 0; let isAdminMode = false; let sceneItems = []; let isInteractingWithHotspot = false;  let currentUser = null;
+            let currentStoryId = null; let storyData = {}; let currentSceneId = 'start'; let currentItemIndex = 0; let isAdminMode = false; let sceneItems = []; let isInteractingWithHotspot = false;  let currentUser = null; let isInLobby = true; let isLobbyAdminMode = false;
 
             // --- DEFAULT STORY ---
             const defaultStoryData = { start: { backgroundImage: 'https://placehold.co/800x600/2d3748/e2e8f0?text=새로운+이야기', script: `[장소: 시작의 방]\n[인물: 나레이션]\n새로운 이야기의 시작입니다.` } };
@@ -551,6 +630,7 @@
             function typeWriterEffect(text, element, callback) { clearTimeout(typingTimeout); element.textContent = ''; let i = 0; function type() { if (i < text.length) { element.textContent += text.charAt(i); i++; typingTimeout = setTimeout(type, 30); } else if (callback) { callback(); } } type(); };
             
             function renderDialogue(item) {
+                exitHotspotBtn.classList.add('hidden');
                 dialogueContentBox.style.display = 'block';
                 characterName.textContent = item.character;
                 typeWriterEffect(item.text, dialogueText);
@@ -599,12 +679,13 @@
                             gameContainer.querySelectorAll('.hotspot').forEach(hp => hp.remove()); 
                             dialogueContentBox.style.display = 'block'; 
                             characterName.textContent = ''; 
-                            typeWriterEffect(hotspot.target, dialogueText); 
+                            const textWithNewlines = hotspot.target.replace(/\s*\/\s*/g, '\n');
+                            typeWriterEffect(textWithNewlines, dialogueText); 
                             const advancePastHotspotShow = (e) => { 
                                 e.stopPropagation(); 
-                                if (dialogueText.textContent.length < hotspot.target.length) { 
+                                if (dialogueText.textContent.length < textWithNewlines.length) { 
                                     clearTimeout(typingTimeout); 
-                                    dialogueText.textContent = hotspot.target; return; 
+                                    dialogueText.textContent = textWithNewlines; return; 
                                 } 
                                 gameContainer.removeEventListener('click', advancePastHotspotShow); 
                                 processNextItem(); 
@@ -618,6 +699,7 @@
             };
             
             function renderChoices(item) {
+                exitHotspotBtn.classList.add('hidden');
                 choicesBox.innerHTML = '';
                 (item.choices || []).forEach(choice => { 
                     const button = document.createElement('button'); 
@@ -630,11 +712,12 @@
                             choicesBox.innerHTML = ''; 
                             dialogueContentBox.style.display = 'block'; 
                             characterName.textContent = ''; 
-                            typeWriterEffect(choice.target, dialogueText); 
+                            const textWithNewlines = choice.target.replace(/\s*\/\s*/g, '\n');
+                            typeWriterEffect(textWithNewlines, dialogueText); 
                             const advancePastChoice = (e) => { 
                                 e.stopPropagation(); 
-                                if (dialogueText.textContent.length < choice.target.length) { 
-                                    clearTimeout(typingTimeout); dialogueText.textContent = choice.target; return; 
+                                if (dialogueText.textContent.length < textWithNewlines.length) { 
+                                    clearTimeout(typingTimeout); dialogueText.textContent = textWithNewlines; return; 
                                 } 
                                 gameContainer.removeEventListener('click', advancePastChoice); 
                                 currentItemIndex++; 
@@ -726,7 +809,21 @@
             function advanceFlow(e) { if (e && (e.target.closest('.choice-btn') || e.target.closest('.hotspot') || e.target.closest('#admin-panel') || e.target.closest('#admin-panel-toggle') || e.target.closest('#exit-hotspot-btn'))) { return; } const currentItem = sceneItems[currentItemIndex]; if (currentItem && currentItem.type === 'dialogue') { const fullText = currentItem.text || ''; if (dialogueText.textContent.length < fullText.length) { clearTimeout(typingTimeout); dialogueText.textContent = fullText; } else { currentItemIndex++; processNextItem(); } } }
             
             // --- LOBBY LOGIC ---
+            function updateLobbyAdminUI() {
+                if (isLobbyAdminMode) {
+                    createNewStoryBtn.classList.remove('hidden');
+                    document.querySelectorAll('.story-delete-btn').forEach(btn => btn.classList.remove('hidden'));
+                } else {
+                    createNewStoryBtn.classList.add('hidden');
+                    document.querySelectorAll('.story-delete-btn').forEach(btn => btn.classList.add('hidden'));
+                }
+            }
+
             function showLobby() { 
+                isInLobby = true;
+                updateSaveSlotsUI();
+                saveSlotsContainer.classList.remove('hidden');
+                setTimeout(() => saveSlotsContainer.classList.remove('opacity-0'), 10);
                 exitHotspotBtn.classList.add('hidden');
                 lobbyScreen.classList.remove('hidden'); 
                 appContainer.classList.add('hidden'); 
@@ -736,7 +833,9 @@
                 adminPanelToggle.classList.add('hidden'); 
                 if(isAdminMode) toggleAdminMode(); 
             }
-            async function loadAndPlayStory(storyId, storyDoc) { 
+            async function loadAndPlayStory(storyId, storyDoc, startingSceneId = 'start') { 
+                isInLobby = false;
+                updateSaveSlotsUI();
                 exitHotspotBtn.classList.add('hidden');
                 loadingSpinner.classList.remove('hidden'); 
                 lobbyScreen.classList.add('hidden'); 
@@ -749,7 +848,7 @@
                 storySubtitleInput.value = storyContent.subtitle || ''; 
                 try { storyData = JSON.parse(storyContent.data); } catch { storyData = defaultStoryData; } 
                 toggleAdminBtn.classList.remove('hidden'); 
-                await renderScene('start'); 
+                await renderScene(startingSceneId); 
                 loadingSpinner.classList.add('hidden'); 
             }
             async function createNewStory() { const title = await showInput("새 스토리의 제목을 입력하세요.", "새로운 챕터"); if(!title) return; const subtitle = await showInput("스토리의 부제목을 입력하세요.", "이야기의 시작"); if(subtitle === null) return; loadingSpinner.classList.remove('hidden'); try { const newStoryRef = await addDoc(collection(db, "stories"), { title: title, subtitle: subtitle, creatorId: currentUser.uid, createdAt: new Date(), data: JSON.stringify(defaultStoryData) }); const newStoryDoc = await getDoc(newStoryRef); await loadAndPlayStory(newStoryDoc.id, newStoryDoc); } catch(e) { showMessage("스토리 생성에 실패했습니다."); } finally { loadingSpinner.classList.add('hidden'); } }
@@ -828,13 +927,126 @@
             }
             function handleEditorCursorChange() { const cursorPos = sceneScriptEditor.selectionStart; const textUpToCursor = sceneScriptEditor.value.substring(0, cursorPos); const lineStart = textUpToCursor.lastIndexOf('\n') + 1; const lineEnd = sceneScriptEditor.value.indexOf('\n', lineStart); const currentLine = sceneScriptEditor.value.substring(lineStart, lineEnd === -1 ? undefined : lineEnd); const scriptLines = sceneScriptEditor.value.split('\n'); const currentLineIndex = textUpToCursor.split('\n').length - 1; const hotspotMatch = currentLine.match(/^@\s*(.*?)\s*\{/); document.querySelectorAll('.hotspot-preview').forEach(p => p.classList.remove('selected')); if (hotspotMatch) { const preview = document.querySelector(`.hotspot-preview[data-line-index="${currentLineIndex}"]`); if (preview) { preview.classList.add('selected'); } } }
             function insertAtCursor(textarea, textToInsert) { const start = textarea.selectionStart; const end = textarea.selectionEnd; const text = textarea.value; textarea.value = text.substring(0, start) + textToInsert + text.substring(end); textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length; textarea.focus(); textarea.dispatchEvent(new Event('input', { bubbles:true, cancelable:true })); }
+
+            function updateSaveSlotsUI() {
+                for (let i = 1; i <= 3; i++) {
+                    const slot = document.getElementById(`save-slot-${i}`);
+                    const saveData = JSON.parse(localStorage.getItem(`adv-save-${i}`));
+                    slot.innerHTML = ''; // Clear previous content
+                    if (saveData) {
+                        slot.classList.add('filled');
+                        slot.classList.remove('empty');
+                        
+                        const titleEl = document.createElement('div');
+                        titleEl.className = 'save-slot-title';
+                        titleEl.textContent = saveData.title;
+
+                        const timeEl = document.createElement('div');
+                        timeEl.className = 'save-slot-time';
+                        timeEl.textContent = saveData.timestamp;
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'delete-save-btn';
+                        deleteBtn.innerHTML = '&times;';
+                        deleteBtn.dataset.slot = i;
+                        deleteBtn.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            if (await showConfirm(`슬롯 ${i}의 저장 데이터를 삭제하시겠습니까?`)) {
+                                localStorage.removeItem(`adv-save-${i}`);
+                                updateSaveSlotsUI();
+                                showMessage(`슬롯 ${i} 삭제 완료.`);
+                            }
+                        });
+
+                        slot.appendChild(titleEl);
+                        slot.appendChild(timeEl);
+                        slot.appendChild(deleteBtn);
+
+                    } else {
+                        slot.classList.add('empty');
+                        slot.classList.remove('filled');
+                        slot.textContent = `슬롯 ${i} (비어있음)`;
+                    }
+                }
+            }
+
+            async function handleSlotClick(slotNumber) {
+                const saveData = JSON.parse(localStorage.getItem(`adv-save-${slotNumber}`));
+                
+                if (isInLobby) { // 로비: 불러오기
+                    if (!saveData) {
+                        showMessage("빈 슬롯입니다.");
+                        return;
+                    }
+                    if(await showConfirm(`"${saveData.title}"을(를) 불러오시겠습니까?`)){
+                         loadingSpinner.classList.remove('hidden');
+                         try {
+                            const storyDoc = await getDoc(doc(db, "stories", saveData.storyId));
+                            if (storyDoc.exists()) {
+                                await loadAndPlayStory(storyDoc.id, storyDoc, saveData.sceneId);
+                            } else {
+                                showMessage("스토리 데이터를 찾을 수 없습니다.");
+                            }
+                        } catch (e) {
+                            showMessage("데이터를 불러오는 중 오류가 발생했습니다.");
+                        } finally {
+                            loadingSpinner.classList.add('hidden');
+                        }
+                    }
+                } else { // 인게임: 저장
+                    if (saveData && !(await showConfirm(`슬롯 ${slotNumber}에 덮어쓰시겠습니까?`))) {
+                        return;
+                    }
+                    const newSaveData = {
+                        storyId: currentStoryId,
+                        sceneId: currentSceneId,
+                        title: storyTitleInput.value || "제목 없음",
+                        timestamp: new Date().toLocaleString('ko-KR')
+                    };
+                    localStorage.setItem(`adv-save-${slotNumber}`, JSON.stringify(newSaveData));
+                    updateSaveSlotsUI();
+                    showMessage(`게임이 슬롯 ${slotNumber}에 저장되었습니다.`);
+                }
+            }
             
             // --- EVENT LISTENERS ---
             (function setupListeners(){
                 gameContainer.addEventListener('click', advanceFlow);
-                toggleAdminBtn.addEventListener('click', toggleAdminMode);
+                
+                // [!!] 수정: 게임 내 관리자 버튼에 비밀번호 기능 추가
+                toggleAdminBtn.addEventListener('click', async () => {
+                    if (isAdminMode) {
+                        toggleAdminMode();
+                        showMessage("제작 도구가 비활성화되었습니다.");
+                    } else {
+                        const password = await showInput("관리자 비밀번호를 입력하세요.", "");
+                        if (password === '0000') {
+                            toggleAdminMode();
+                            showMessage("제작 도구가 활성화되었습니다.");
+                        } else if (password !== null) {
+                            showMessage("비밀번호가 올바르지 않습니다.");
+                        }
+                    }
+                });
+
                 adminPanelToggle.addEventListener('click', toggleAdminPanel);
                 
+                lobbyAdminToggleBtn.addEventListener('click', async () => {
+                    if (isLobbyAdminMode) {
+                        isLobbyAdminMode = false;
+                        showMessage("관리자 모드가 비활성화되었습니다.");
+                    } else {
+                        const password = await showInput("관리자 비밀번호를 입력하세요.", "");
+                        if (password === '0000') {
+                            isLobbyAdminMode = true;
+                            showMessage("관리자 모드가 활성화되었습니다.");
+                        } else if (password !== null) {
+                            showMessage("비밀번호가 올바르지 않습니다.");
+                        }
+                    }
+                    updateLobbyAdminUI();
+                });
+
                 exitHotspotBtn.addEventListener('click', () => {
                     currentItemIndex++;
                     processNextItem();
@@ -882,6 +1094,10 @@
                 insertHotspotBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[조사지점]\n@ 이름 {X: 10, Y: 10, W: 20, H: 20, SHOW: 출력될 텍스트}\n'));
                 insertGotoBtn.addEventListener('click', () => insertAtCursor(sceneScriptEditor, '\n[GOTO: 장면ID]\n'));
 
+                for (let i = 1; i <= 3; i++) {
+                    document.getElementById(`save-slot-${i}`).addEventListener('click', () => handleSlotClick(i));
+                }
+
                 syntaxHelpBtn.addEventListener('click', () => syntaxModal.classList.remove('hidden'));
                 syntaxCloseBtn.addEventListener('click', () => syntaxModal.classList.add('hidden'));
                 saveStoryBtn.addEventListener('click', async () => { if (!db || !currentStoryId) { showMessage("DB에 연결되지 않았거나 스토리가 선택되지 않았습니다."); return; } loadingSpinner.classList.remove('hidden'); try { await setDoc(doc(db, "stories", currentStoryId), { title: storyTitleInput.value, subtitle: storySubtitleInput.value, data: JSON.stringify(storyData) }, { merge: true }); showMessage("스토리가 성공적으로 저장되었습니다!"); } catch (error) { showMessage("스토리 저장 중 오류가 발생했습니다."); } finally { loadingSpinner.classList.add('hidden'); } });
@@ -911,7 +1127,7 @@
                         
                         const deleteBtn = document.createElement('button');
                         deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-                        deleteBtn.className = "text-red-400 hover:text-red-600 ml-4 flex-shrink-0 p-2";
+                        deleteBtn.className = "story-delete-btn text-red-400 hover:text-red-600 ml-4 flex-shrink-0 p-2";
                         deleteBtn.onclick = (e) => { e.stopPropagation(); deleteStory(doc.id); };
                         
                         storyEl.appendChild(mainContent);
@@ -921,6 +1137,7 @@
 
                         storyList.appendChild(storyEl);
                     });
+                    updateLobbyAdminUI();
                 });
                 loadingSpinner.classList.add('hidden');
                 showLobby();
