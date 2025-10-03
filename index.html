@@ -14,7 +14,6 @@
                               radial-gradient(circle at bottom left, rgba(47, 71, 150, 0.3), transparent 40%);
         }
 
-        /* [!!] 수정: 게임 화면 최대 크기 제한 */
         #root-container {
             width: 100%;
             max-width: min(90vw, 2560px); 
@@ -37,7 +36,6 @@
             padding-right: 2rem;
         }
 
-        /* [!!] 추가: 대화 텍스트 줄바꿈 처리 */
         #dialogue-text { white-space: pre-wrap; }
 
         #character-name { color: #a7b5e8; font-weight: 700; text-shadow: 0 0 5px #2f4796; }
@@ -485,7 +483,7 @@
     <div id="input-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50"><div class="modal-content-bg rounded-lg p-6 shadow-xl w-full max-w-sm"><p id="input-text" class="mb-4 text-lg text-center"></p><input type="text" id="input-field" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mb-4"><div class="flex justify-center space-x-4"><button id="input-ok-btn" class="modal-button hover:opacity-80 px-6 py-2 rounded-md">확인</button><button id="input-cancel-btn" class="modal-button-secondary hover:opacity-80 px-6 py-2 rounded-md">취소</button></div></div></div>
     <div id="syntax-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4"><div id="syntax-modal-content" class="bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-2xl text-left relative max-h-full overflow-y-auto"><h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">스크립트 문법 도움말</h3><button id="syntax-close-btn" class="absolute top-6 right-6 text-gray-400 hover:text-white text-3xl leading-none">&times;</button><div class="space-y-6 text-gray-300 mt-4"><div><h4 class="font-bold text-lg text-teal-400">장소 / 이벤트</h4><p class="text-sm mt-1">장면 시작 시 장소 이름이나 이벤트 텍스트를 팝업으로 표시합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[장소: 장소 이름]\n[EVENT: 이벤트 발생!]</code></pre></div>
     <div><h4 class="font-bold text-lg text-yellow-400">강제 이동</h4><p class="text-sm mt-1">해당 라인을 읽는 즉시 다른 장면으로 강제 이동시킵니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[GOTO: 이동할_장면ID]</code></pre></div>
-    <div><h4 class="font-bold text-lg text-indigo-400">레이블</h4><p class="text-sm mt-1">스크립트 내 특정 위치로 점프할 수 있는 책갈피를 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[LABEL: 레이블_이름]\n...\n> 선택지 {GOTO: 장면ID@레이블_이름}</code></pre></div><div><h4 class="font-bold text-lg text-cyan-400">인물 및 대사</h4><p class="text-sm mt-1">화자를 지정하고 대사를 출력합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[인물: 캐릭터 이름]\n대사 내용입니다.</code></pre></div><div><h4 class="font-bold text-lg text-purple-400">선택지</h4><p class="text-sm mt-1">플레이어에게 선택지를 제공합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[선택지]\n> 선택지 1 {GOTO: 장면ID}\n> 선택지 2 {SHOW: 텍스트}</code></pre></div><div><h4 class="font-bold text-lg text-orange-400">조사 지점 (핫스팟)</h4><p class="text-sm mt-1">화면에 클릭 가능한 영역을 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[조사지점]\n@ 이름 {X:10, Y:10, W:20, H:20, GOTO: 장면ID}</code></pre></div></div></div></div>
+    <div><h4 class="font-bold text-lg text-indigo-400">레이블</h4><p class="text-sm mt-1">스크립트 내 특정 위치로 점프할 수 있는 책갈피를 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[LABEL: 레이블_이름]\n...\n> 선택지 {GOTO: 장면ID@레이블_이름}</code></pre></div><div><h4 class="font-bold text-lg text-cyan-400">인물 및 대사</h4><p class="text-sm mt-1">화자를 지정하고 대사를 출력합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[인물: 캐릭터 이름]\n대사 내용입니다.</code></pre></div><div><h4 class="font-bold text-lg text-purple-400">선택지</h4><p class="text-sm mt-1">플레이어에게 선택지를 제공합니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[선택지]\n> 선택지 1 {GOTO: 장면ID}\n> 선택지 2 {SHOW: 텍스트1 / 텍스트2}</code></pre></div><div><h4 class="font-bold text-lg text-orange-400">조사 지점 (핫스팟)</h4><p class="text-sm mt-1">화면에 클릭 가능한 영역을 만듭니다.</p><pre class="bg-gray-900 p-3 rounded mt-2 text-sm text-white"><code>[조사지점]\n@ 이름 {X:10, Y:10, W:20, H:20, SHOW: 텍스트1 / 텍스트2}</code></pre></div></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -557,6 +555,7 @@
 
             // --- GAME STATE ---
             let currentStoryId = null; let storyData = {}; let currentSceneId = 'start'; let currentItemIndex = 0; let isAdminMode = false; let sceneItems = []; let isInteractingWithHotspot = false;  let currentUser = null; let isInLobby = true; let isLobbyAdminMode = false;
+            let isShowingSequentialText = false;
 
             // --- DEFAULT STORY ---
             const defaultStoryData = { start: { backgroundImage: 'https://placehold.co/800x600/2d3748/e2e8f0?text=새로운+이야기', script: `[장소: 시작의 방]\n[인물: 나레이션]\n새로운 이야기의 시작입니다.` } };
@@ -629,6 +628,51 @@
             
             function typeWriterEffect(text, element, callback) { clearTimeout(typingTimeout); element.textContent = ''; let i = 0; function type() { if (i < text.length) { element.textContent += text.charAt(i); i++; typingTimeout = setTimeout(type, 30); } else if (callback) { callback(); } } type(); };
             
+            // [!!] 신규: 순차적 텍스트 출력 함수
+            function showSequentialText(textTarget, onComplete) {
+                isShowingSequentialText = true;
+                const textParts = textTarget.split('/').map(t => t.trim());
+                let partIndex = 0;
+
+                const cleanupAndComplete = () => {
+                    gameContainer.removeEventListener('click', advanceText);
+                    isShowingSequentialText = false;
+                    if (onComplete) onComplete();
+                };
+
+                const advanceText = (e) => {
+                    if (e.target.closest('.choice-btn') || e.target.closest('.hotspot') || e.target.closest('#admin-panel') || e.target.closest('#admin-panel-toggle') || e.target.closest('#exit-hotspot-btn') || e.target.closest('.control-btn')) {
+                        return;
+                    }
+                    e.stopPropagation();
+
+                    const fullText = textParts[partIndex - 1] || '';
+                    if (dialogueText.textContent.length < fullText.length) {
+                        clearTimeout(typingTimeout);
+                        dialogueText.textContent = fullText;
+                    } else {
+                        if (partIndex >= textParts.length) {
+                            cleanupAndComplete();
+                        } else {
+                            showNextPart();
+                        }
+                    }
+                };
+                
+                function showNextPart() {
+                    if (partIndex < textParts.length) {
+                        const currentText = textParts[partIndex];
+                        typeWriterEffect(currentText, dialogueText);
+                        partIndex++;
+                    }
+                }
+
+                dialogueContentBox.style.display = 'block';
+                characterName.textContent = '';
+                showNextPart();
+                gameContainer.addEventListener('click', advanceText);
+            }
+
             function renderDialogue(item) {
                 exitHotspotBtn.classList.add('hidden');
                 dialogueContentBox.style.display = 'block';
@@ -677,20 +721,9 @@
                         } else if (hotspot.type === 'show') { 
                             exitHotspotBtn.classList.add('hidden');
                             gameContainer.querySelectorAll('.hotspot').forEach(hp => hp.remove()); 
-                            dialogueContentBox.style.display = 'block'; 
-                            characterName.textContent = ''; 
-                            const textWithNewlines = hotspot.target.replace(/\s*\/\s*/g, '\n');
-                            typeWriterEffect(textWithNewlines, dialogueText); 
-                            const advancePastHotspotShow = (e) => { 
-                                e.stopPropagation(); 
-                                if (dialogueText.textContent.length < textWithNewlines.length) { 
-                                    clearTimeout(typingTimeout); 
-                                    dialogueText.textContent = textWithNewlines; return; 
-                                } 
-                                gameContainer.removeEventListener('click', advancePastHotspotShow); 
-                                processNextItem(); 
-                            }; 
-                            gameContainer.addEventListener('click', advancePastHotspotShow, { once: true }); 
+                            showSequentialText(hotspot.target, () => {
+                                processNextItem();
+                            });
                         } 
                     }); 
                     gameContainer.appendChild(hpElement); 
@@ -710,20 +743,10 @@
                         if (choice.type === 'goto') { renderScene(choice.target); } 
                         else if (choice.type === 'show') { 
                             choicesBox.innerHTML = ''; 
-                            dialogueContentBox.style.display = 'block'; 
-                            characterName.textContent = ''; 
-                            const textWithNewlines = choice.target.replace(/\s*\/\s*/g, '\n');
-                            typeWriterEffect(textWithNewlines, dialogueText); 
-                            const advancePastChoice = (e) => { 
-                                e.stopPropagation(); 
-                                if (dialogueText.textContent.length < textWithNewlines.length) { 
-                                    clearTimeout(typingTimeout); dialogueText.textContent = textWithNewlines; return; 
-                                } 
-                                gameContainer.removeEventListener('click', advancePastChoice); 
-                                currentItemIndex++; 
-                                processNextItem(); 
-                            }; 
-                            gameContainer.addEventListener('click', advancePastChoice, { once: true }); 
+                            showSequentialText(choice.target, () => {
+                                currentItemIndex++;
+                                processNextItem();
+                            });
                         } 
                     }); 
                     choicesBox.appendChild(button); 
@@ -806,7 +829,25 @@
                 }
                 await processNextItem();
             }
-            function advanceFlow(e) { if (e && (e.target.closest('.choice-btn') || e.target.closest('.hotspot') || e.target.closest('#admin-panel') || e.target.closest('#admin-panel-toggle') || e.target.closest('#exit-hotspot-btn'))) { return; } const currentItem = sceneItems[currentItemIndex]; if (currentItem && currentItem.type === 'dialogue') { const fullText = currentItem.text || ''; if (dialogueText.textContent.length < fullText.length) { clearTimeout(typingTimeout); dialogueText.textContent = fullText; } else { currentItemIndex++; processNextItem(); } } }
+
+            function advanceFlow(e) {
+                if (isShowingSequentialText) return;
+
+                if (e && (e.target.closest('.choice-btn') || e.target.closest('.hotspot') || e.target.closest('#admin-panel') || e.target.closest('#admin-panel-toggle') || e.target.closest('#exit-hotspot-btn'))) {
+                    return;
+                }
+                const currentItem = sceneItems[currentItemIndex];
+                if (currentItem && currentItem.type === 'dialogue') {
+                    const fullText = currentItem.text || '';
+                    if (dialogueText.textContent.length < fullText.length) {
+                        clearTimeout(typingTimeout);
+                        dialogueText.textContent = fullText;
+                    } else {
+                        currentItemIndex++;
+                        processNextItem();
+                    }
+                }
+            }
             
             // --- LOBBY LOGIC ---
             function updateLobbyAdminUI() {
@@ -1013,7 +1054,6 @@
             (function setupListeners(){
                 gameContainer.addEventListener('click', advanceFlow);
                 
-                // [!!] 수정: 게임 내 관리자 버튼에 비밀번호 기능 추가
                 toggleAdminBtn.addEventListener('click', async () => {
                     if (isAdminMode) {
                         toggleAdminMode();
